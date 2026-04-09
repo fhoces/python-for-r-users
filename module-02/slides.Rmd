@@ -1,0 +1,342 @@
+---
+title: "Module 2: pandas Basics"
+subtitle: "The dplyr → pandas translation"
+output:
+  xaringan::moon_reader:
+    css: [default, default-fonts]
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+
+```{css, echo=FALSE}
+.remark-code, .remark-inline-code { font-size: 80%; }
+.remark-slide-content { padding: 1em 2em; }
+.small { font-size: 80%; }
+```
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
+<tr><td><b>2</b></td><td><b>pandas basics</b> <i>(you are here)</i></td><td>← current</td></tr>
+<tr><td>3</td><td>Joins, merges, group-by recipes</td><td>upcoming</td></tr>
+<tr><td>4</td><td>Regression and A/B tests with statsmodels</td><td>upcoming</td></tr>
+<tr><td>5</td><td>End-to-end interview scenario</td><td>upcoming</td></tr>
+</table>
+
+---
+
+# Loading Data
+
+```python
+import pandas as pd
+import numpy as np
+
+rides = pd.read_csv("data/rides.csv", parse_dates=["pickup_at"])
+
+rides.head()
+rides.shape          # (30000, 9) — like dim() in R
+rides.columns        # Index(['ride_id', 'rider_id', ...])
+rides.dtypes         # column types
+```
+
+--
+
+`parse_dates=` is essential. Without it, date columns are strings and `.dt.year` errors out.
+
+---
+
+# The dplyr → pandas Cheat Sheet
+
+| Verb | dplyr | pandas |
+|---|---|---|
+| Filter rows | `filter(fare > 10)` | `rides[rides["fare_usd"] > 10]` |
+| Select columns | `select(city, fare)` | `rides[["city", "fare_usd"]]` |
+| Add column | `mutate(rate = fare / dist)` | `rides["rate"] = rides["fare_usd"] / rides["distance_mi"]` |
+| Sort | `arrange(desc(fare))` | `rides.sort_values("fare_usd", ascending=False)` |
+| Summarise | `summarise(avg = mean(fare))` | `rides["fare_usd"].mean()` |
+| Group + summarise | `group_by(city) \|> summarise(...)` | `rides.groupby("city")["fare_usd"].mean()` |
+| Distinct | `distinct(driver_id)` | `rides.drop_duplicates("driver_id")` |
+
+--
+
+The mental model: in pandas, **everything is a method on a DataFrame**, where dplyr is a pipeline of free functions.
+
+---
+
+# Filter
+
+```python
+# Single condition
+rides[rides["fare_usd"] > 20]
+
+# Multiple — use & and |, NOT and/or
+rides[(rides["fare_usd"] > 20) & (rides["distance_mi"] < 5)]
+
+# isin (matches dplyr's %in%)
+rides[rides["city"].isin(["SF", "Chicago"])]
+
+# Negation
+rides[~rides["city"].isin(["SF"])]
+
+# Query method (string-based, often cleaner)
+rides.query("fare_usd > 20 and distance_mi < 5")
+```
+
+--
+
+**The parentheses around each `&` condition are required.** Forgetting them is the most common pandas mistake.
+
+---
+
+# Mutate (assign)
+
+```python
+# Direct (mutates in place)
+rides["fare_per_mile"] = rides["fare_usd"] / rides["distance_mi"]
+
+# .assign() — closer to dplyr style, returns a new DataFrame
+rides = rides.assign(
+    fare_per_mile = rides["fare_usd"] / rides["distance_mi"],
+    is_long_trip  = rides["distance_mi"] > 10,
+    log_fare      = np.log(rides["fare_usd"])
+)
+
+# Conditional with np.where
+rides["tier"] = np.where(rides["fare_usd"] > 30, "premium", "standard")
+```
+
+--
+
+`assign()` is the dplyr-est way. Direct assignment is shorter but mutates in place.
+
+---
+
+# Group By + Summarise
+
+```python
+# One group, one stat — returns a Series
+rides.groupby("city")["fare_usd"].mean()
+
+# Multiple stats with named output (the dplyr-est syntax)
+rides.groupby("city").agg(
+    avg_fare    = ("fare_usd", "mean"),
+    n_rides     = ("ride_id", "count"),
+    p90_fare    = ("fare_usd", lambda x: x.quantile(0.9))
+)
+
+# To get a DataFrame back instead of grouped index
+rides.groupby("city", as_index=False)["fare_usd"].mean()
+```
+
+--
+
+**The `name = (column, function)` syntax** in `.agg()` is the closest pandas gets to `summarise(avg_fare = mean(fare_usd), ...)`.
+
+---
+
+# Date / Time Operations
+
+Once parsed, every datetime column has a `.dt` accessor:
+
+```python
+rides["pickup_at"].dt.year
+rides["pickup_at"].dt.month
+rides["pickup_at"].dt.day_name()
+rides["pickup_at"].dt.hour
+rides["pickup_at"].dt.dayofweek      # 0 = Monday
+```
+
+--
+
+Filter on dates:
+
+```python
+rides[rides["pickup_at"] >= "2025-12-01"]
+```
+
+--
+
+Resample to a frequency:
+
+```python
+rides.set_index("pickup_at").resample("D")["fare_usd"].sum()    # daily
+rides.set_index("pickup_at").resample("W")["fare_usd"].mean()   # weekly
+```
+
+---
+
+# Pivot
+
+```python
+# Long → wide
+hourly = (
+    rides
+    .assign(hour = rides["pickup_at"].dt.hour)
+    .groupby(["city", "hour"])
+    .size()
+    .reset_index(name="n_rides")
+)
+
+wide = hourly.pivot(index="city", columns="hour", values="n_rides")
+```
+
+--
+
+```python
+# Wide → long
+long = wide.reset_index().melt(
+    id_vars="city", var_name="hour", value_name="n_rides"
+)
+```
+
+--
+
+These are `tidyr::pivot_wider` and `pivot_longer`.
+
+---
+
+# Common Traps
+
+**1. Operator precedence in boolean filters.** Always parenthesize each condition before `&` / `|`.
+
+--
+
+**2. `SettingWithCopyWarning`.** Use `.loc[row_selector, col_selector]` to modify a subset, never chained `[]` indexing.
+
+--
+
+**3. NaN handling.** `df["col"] == np.nan` is always False. Use `df["col"].isna()`.
+
+--
+
+**4. The default index sticks around.** If you filter or group, the row index can become non-contiguous. Use `df.reset_index(drop=True)` for a fresh integer index.
+
+---
+class: inverse, center, middle
+
+# Interview Questions
+
+---
+
+# Q1. Weekday morning rides, mean fare by city
+
+```python
+morning_weekday = rides[
+    (rides["pickup_at"].dt.dayofweek < 5) &
+    (rides["pickup_at"].dt.hour >= 7) &
+    (rides["pickup_at"].dt.hour < 9)
+]
+morning_weekday.groupby("city")["fare_usd"].mean().round(2)
+```
+
+--
+
+The pattern: filter with multiple conditions, then group-by-summarise. Notice the parentheses around each `&` condition.
+
+---
+
+# Q2. Top 5 most expensive rides per city
+
+```python
+(rides
+ .assign(fare_per_mile = rides["fare_usd"] / rides["distance_mi"])
+ .sort_values(["city", "fare_per_mile"], ascending=[True, False])
+ .groupby("city")
+ .head(5)
+)
+```
+
+--
+
+`groupby().head(N)` is the pandas idiom for "top-N per group". Equivalent to `slice_max(n=5, by=city)` in dplyr.
+
+---
+
+# Q3. Peak-hour share by city
+
+```python
+rides["is_peak"] = (
+    (rides["pickup_at"].dt.hour.between(7, 8)) |
+    (rides["pickup_at"].dt.hour.between(17, 18))
+).astype(int)
+
+(rides
+ .groupby("city")
+ .agg(
+     n_rides    = ("ride_id", "count"),
+     n_peak     = ("is_peak", "sum")
+ )
+ .assign(peak_share = lambda d: (d["n_peak"] / d["n_rides"]).round(3))
+)
+```
+
+---
+
+# Q4. Top 3 cities by recent volume
+
+```python
+recent = rides[rides["pickup_at"] >= "2025-12-02"]
+recent.groupby("city").size().sort_values(ascending=False).head(3)
+```
+
+--
+
+`.size()` is the pandas equivalent of `dplyr::n()` inside a `summarise`.
+
+---
+
+# Q5. Long → wide pivot
+
+```python
+long = (
+    rides
+    .assign(hour = rides["pickup_at"].dt.hour)
+    .groupby(["city", "hour"])
+    .size()
+    .reset_index(name="n_rides")
+)
+wide = long.pivot(index="city", columns="hour", values="n_rides")
+```
+
+--
+
+`pivot()` for long → wide. `melt()` for wide → long.
+
+---
+class: inverse
+
+# The Key Takeaways
+
+<br>
+
+### 1. The dplyr 5 verbs all have direct pandas equivalents. The hardest part is remembering the method-call style instead of the pipe.
+
+--
+
+<br>
+
+### 2. `.agg(name = (col, func))` is the cleanest summarise. Memorize it.
+
+--
+
+<br>
+
+### 3. The two pandas-specific traps: parenthesize boolean conditions, and use `.loc` for any "modify a subset" operation.
+
+---
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
+<tr><td>2</td><td>pandas basics <i>(just finished)</i></td><td>✓ done</td></tr>
+<tr><td><b>3</b></td><td><b>Joins, merges, group-by recipes</b></td><td>next</td></tr>
+<tr><td>4</td><td>Regression and A/B tests with statsmodels</td><td>upcoming</td></tr>
+<tr><td>5</td><td>End-to-end interview scenario</td><td>upcoming</td></tr>
+</table>

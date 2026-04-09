@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Module 5: End-to-End Interview Scenario</title>
+    <meta charset="utf-8" />
+    <script src="slides_files/header-attrs-2.29/header-attrs.js"></script>
+    <link href="slides_files/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="slides_files/remark-css-0.0.1/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Module 5: End-to-End Interview Scenario
+]
+.subtitle[
+## Putting it all together
+]
+
+---
+
+
+&lt;style type="text/css"&gt;
+.remark-code, .remark-inline-code { font-size: 80%; }
+.remark-slide-content { padding: 1em 2em; }
+.small { font-size: 80%; }
+&lt;/style&gt;
+
+# Course Map
+
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;#&lt;/th&gt;&lt;th&gt;Module&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;&lt;a href="../module-01/slides.html"&gt;Python for R Users&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;&lt;a href="../module-02/slides.html"&gt;pandas basics&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;&lt;a href="../module-03/slides.html"&gt;Joins, merges, group-by recipes&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;&lt;a href="../module-04/slides.html"&gt;Regression and A/B tests with statsmodels&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;b&gt;5&lt;/b&gt;&lt;/td&gt;&lt;td&gt;&lt;b&gt;End-to-end interview scenario&lt;/b&gt; &lt;i&gt;(you are here)&lt;/i&gt;&lt;/td&gt;&lt;td&gt;← current&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+---
+
+# What This Module Is
+
+The previous four modules were each one tool. This one is the **combination**.
+
+--
+
+What you'd actually do in 15 minutes when an interviewer hands you a CSV and a question.
+
+--
+
+Three end-to-end scenarios at increasing difficulty, plus a 30-minute mock interview structure to drill on your own.
+
+---
+
+# The General Structure
+
+| Step | Time | What |
+|---|---|---|
+| 1 | 0-2 min | Read the prompt twice. Restate it in your own words. |
+| 2 | 2-5 min | Look at the data. `head`, `shape`, `dtypes`, `describe`. |
+| 3 | 5-15 min | Write the code, top-down. Don't optimize. |
+| 4 | 15-20 min | Sanity check. Same answer two ways if possible. |
+| 5 | 20-25 min | Plot the result if applicable. |
+| 6 | 25-28 min | Restate the answer in plain English. |
+| 7 | 28-30 min | Note caveats: identification, sample, what you'd do with more time. |
+
+--
+
+**Biggest mistake:** jumping into code before understanding the question. **Second biggest:** silence. Talk while you type.
+
+---
+class: inverse, center, middle
+
+# Scenario 1
+## A/B Test Analysis
+
+---
+
+# The Prompt
+
+&gt; *"We ran an A/B test on a new dispatch algorithm in five cities. Treated users saw the new algorithm; control users saw the old one. Compute the average treatment effect on rider spend, with a 95% CI and a plot."*
+
+---
+
+# The Code
+
+```python
+import pandas as pd
+import statsmodels.formula.api as smf
+
+ab = pd.read_csv("data/ab_test.csv")
+
+# Step 1: balance check
+print(ab.groupby("treatment")["spend_usd"].agg(["count","mean","std"]))
+
+# Step 2: OLS = the t-test, with HC3 SEs
+fit = smf.ols("spend_usd ~ treatment", data=ab).fit(cov_type="HC3")
+ate    = fit.params["treatment"]
+ate_ci = fit.conf_int().loc["treatment"]
+print(f"ATE: ${ate:.2f}, 95% CI: [${ate_ci[0]:.2f}, ${ate_ci[1]:.2f}]")
+
+# Step 3: variance reduction with city FE
+fit_fe = smf.ols("spend_usd ~ treatment + C(city)", data=ab).fit(cov_type="HC3")
+print(f"With city FE: ATE = ${fit_fe.params['treatment']:.2f}")
+```
+
+---
+
+# The Plain-English Answer
+
+&gt; "The new dispatch algorithm increased rider spend by approximately $1.80 per user, with a 95% confidence interval of [$1.50, $2.10]. The estimate is robust to controlling for city fixed effects."
+
+--
+
+**Notice what's in this sentence:**
+- The point estimate
+- The CI
+- A robustness statement
+
+--
+
+You should be able to write this sentence without thinking. It's the difference between "ran the regression" and "answered the question."
+
+---
+class: inverse, center, middle
+
+# Scenario 2
+## Process a Folder of CSVs
+
+---
+
+# The Prompt
+
+&gt; *"We have one CSV per city in `data/by_city/`. Compute the daily ride count for each city and produce a single output table."*
+
+---
+
+# The Code
+
+```python
+import pandas as pd
+from pathlib import Path
+
+# Step 1: list the files
+files = list(Path("data/by_city").glob("*.csv"))
+
+# Step 2: read each, add the city name, concat
+dfs = []
+for f in files:
+    city = f.stem.replace("_", " ")
+    df = pd.read_csv(f, parse_dates=["pickup_at"])
+    df["city"] = city
+    dfs.append(df)
+
+all_rides = pd.concat(dfs, ignore_index=True)
+
+# Step 3: daily counts per city
+daily = (
+    all_rides
+    .assign(date = all_rides["pickup_at"].dt.date)
+    .groupby(["city", "date"])
+    .size()
+    .reset_index(name="n_rides")
+)
+```
+
+--
+
+The patterns to memorize: `Path.glob`, `for` + `pd.concat`, `.dt.date`.
+
+---
+class: inverse, center, middle
+
+# Scenario 3
+## Disparate-Impact Audit
+
+---
+
+# The Prompt
+
+&gt; *"We're auditing the surge-pricing algorithm. Are higher-minority neighborhoods charged more per mile, conditional on trip characteristics?"*
+
+This is the Pandey-Caliskan setup translated into pandas.
+
+---
+
+# The Code
+
+```python
+rides["fare_per_mile"] = rides["fare_usd"] / rides["distance_mi"]
+
+# Quick comparison
+print(rides
+    .assign(high_min = (rides["pct_minority"] &gt;= 0.5).astype(int))
+    .groupby("high_min")["fare_per_mile"]
+    .agg(["mean", "median", "count"]))
+
+# Regression with controls
+fit = smf.ols(
+    "fare_per_mile ~ pct_minority + distance_mi + duration_min + C(hour)",
+    data=rides.assign(hour = rides["pickup_at"].dt.hour)
+).fit(cov_type="HC3")
+
+print(fit.summary().tables[1])
+```
+
+---
+
+# The Careful Interpretation
+
+```python
+coef = fit.params["pct_minority"]
+print(f"A 10pp increase in pct_minority → ${coef * 0.1:.3f}")
+print(f"higher fare per mile, conditional on controls.")
+```
+
+--
+
+&gt; "After controlling for distance, duration, and hour of day, neighborhoods with a 10 pp higher minority share have $X higher fare per mile, on average. This is documenting *disparate impact*; the causal mechanism is not identified in this regression."
+
+--
+
+**The "documenting disparate impact, not identifying the mechanism" caveat is the tell** that you understand what regression with controls can and can't do. Memorize the phrase.
+
+---
+
+# What to Install Before the Interview
+
+```bash
+pip install pandas numpy statsmodels scipy matplotlib seaborn
+pip install linearmodels   # if they ask about panel data
+```
+
+---
+
+# What to Know Cold
+
+.small[
+- `pd.read_csv` with `parse_dates`, `dtype`, `usecols`
+- `df[df["x"] &gt; 5]`, `df.query("x &gt; 5")`
+- `df.groupby("g")["y"].agg([...])` and `.transform("mean")`
+- `df.merge(other, on=..., how=...)` with `validate="..."`
+- `smf.ols("y ~ x + C(g)", data=df).fit(cov_type="HC3")`
+- Reading a regression summary: which numbers to report
+- t-test, confidence interval, p-value semantics
+- Plotting basics with `df.plot(...)` or `matplotlib.pyplot`
+]
+
+--
+
+**The closing exercise:** the exercise file has six end-to-end mini-scenarios. Drill them with a 5-minute timer per question. Then drill them again the next day.
+
+---
+class: inverse
+
+# The Course in One Slide
+
+&lt;br&gt;
+
+### 1. Module 1: Python is R syntax with zero-indexing, explicit imports, and load-bearing whitespace.
+
+--
+
+&lt;br&gt;
+
+### 2. Modules 2-3: pandas is dplyr with method chains. The cheat sheet covers 95% of what you need.
+
+--
+
+&lt;br&gt;
+
+### 3. Module 4: statsmodels gives you R-style formulas and the OLS-as-A/B-test pattern. The hardest part is over.
+
+--
+
+&lt;br&gt;
+
+### 4. Module 5: in the interview, talk while you type and always restate the answer in plain English.
+
+---
+
+# Course Map
+
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;#&lt;/th&gt;&lt;th&gt;Module&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;&lt;a href="../module-01/slides.html"&gt;Python for R Users&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;&lt;a href="../module-02/slides.html"&gt;pandas basics&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;&lt;a href="../module-03/slides.html"&gt;Joins, merges, group-by recipes&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;&lt;a href="../module-04/slides.html"&gt;Regression and A/B tests with statsmodels&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;End-to-end interview scenario &lt;i&gt;(just finished)&lt;/i&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+**You're done.** Now drill the questions until you can answer each one in 5 minutes flat.
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

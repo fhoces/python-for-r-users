@@ -1,0 +1,309 @@
+---
+title: "Module 1: Python for R Users"
+subtitle: "The cheat sheet"
+output:
+  xaringan::moon_reader:
+    css: [default, default-fonts]
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+
+```{css, echo=FALSE}
+.remark-code, .remark-inline-code { font-size: 80%; }
+.remark-slide-content { padding: 1em 2em; }
+.small { font-size: 80%; }
+```
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td><b>1</b></td><td><b>Python for R Users</b> <i>(you are here)</i></td><td>← current</td></tr>
+<tr><td>2</td><td>pandas basics: filter / mutate / arrange / summarise</td><td>upcoming</td></tr>
+<tr><td>3</td><td>Joins, merges, group-by recipes</td><td>upcoming</td></tr>
+<tr><td>4</td><td>Regression and A/B tests with statsmodels</td><td>upcoming</td></tr>
+<tr><td>5</td><td>End-to-end interview scenario</td><td>upcoming</td></tr>
+</table>
+
+---
+
+# The Big Differences in 90 Seconds
+
+| | R | Python |
+|---|---|---|
+| Indexing starts at | 1 | **0** |
+| Inclusive ranges? | Yes (`1:5` = 1..5) | **No** (`range(1,5)` = 0..4) |
+| Assignment | `<-` (or `=`) | `=` |
+| Indentation | cosmetic | **load-bearing** |
+| Vectorized? | Everything is | Lists no, NumPy/pandas yes |
+| Missing values | `NA` (typed) | `None` / `np.nan` (untyped) |
+| Booleans | `TRUE`/`FALSE` | `True`/`False` |
+| Function call | `f(x, y = 2)` | `f(x, y=2)` |
+
+--
+
+The biggest mental shift: **indentation is part of the syntax**. There are no curly braces. The 4-space indent IS the block.
+
+---
+
+# Variables and Types
+
+```python
+x = 42                  # int
+y = 3.14                # float
+name = "Allison"        # str
+greeting = f"Hello, {name}!"  # f-string interpolation
+
+is_ready = True         # bool (capitalized!)
+maybe = None            # Python's NULL
+```
+
+--
+
+R-isms that don't work: `x <- 5` parses as "is x less than minus 5" → `False`. Use `=`.
+
+---
+
+# The Four Core Data Structures
+
+```python
+nums  = [1, 2, 3, 4, 5]              # list — ordered, mutable
+point = (3.0, 4.0)                   # tuple — ordered, immutable
+ride  = {"id": 42, "fare": 15.5}     # dict — key-value (named list)
+seen  = {1, 2, 3}                    # set — unordered, unique
+```
+
+--
+
+Indexing on lists:
+
+```python
+nums[0]    # → 1   (zero-indexed!)
+nums[-1]   # → 5   (negative = from end)
+nums[1:3]  # → [2, 3]   (right-exclusive)
+```
+
+--
+
+**Lists are NOT vectorized.** `[1, 2, 3] + 1` is a `TypeError`. For vectorized math you need NumPy or pandas (Module 2).
+
+---
+
+# Comprehensions: The Python Idiom
+
+```python
+# List comprehension
+squares = [x ** 2 for x in range(10)]
+# → [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
+
+# With a filter
+evens = [x for x in range(20) if x % 2 == 0]
+# → [0, 2, 4, ..., 18]
+
+# Dict comprehension
+square_map = {x: x ** 2 for x in range(5)}
+```
+
+--
+
+R equivalent: `sapply()` / `purrr::map()`. Pythonic style prefers comprehensions to loops for transformations + filters.
+
+---
+
+# Control Flow
+
+```python
+if x > 0:
+    print("positive")
+elif x == 0:
+    print("zero")
+else:
+    print("negative")
+
+for item in nums:
+    print(item)
+
+while x > 0:
+    x -= 1
+```
+
+--
+
+The `:` after the condition is required. Indentation defines blocks. No parentheses around the condition.
+
+---
+
+# Functions
+
+```python
+def mph(distance, minutes):
+    """Miles per hour given distance (mi) and time (min)."""
+    return distance / (minutes / 60)
+
+mph(5, 15)   # → 20.0
+
+# Default arguments
+def greet(name, greeting="Hello"):
+    return f"{greeting}, {name}!"
+
+greet("Maya")               # 'Hello, Maya!'
+greet("Maya", "Welcome")    # 'Welcome, Maya!'
+
+# Lambda (anonymous function, like R's \(x) ...)
+square = lambda x: x ** 2
+```
+
+---
+
+# Imports
+
+```python
+import pandas as pd                       # whole module, alias as pd
+import numpy as np
+from statsmodels.formula.api import ols   # specific name from a module
+```
+
+--
+
+R equivalent: `library(...)`, but Python is **explicit**. You have to name the module every time you use a function from it (`pd.read_csv`, not `read_csv`).
+
+--
+
+Verbose, but makes scripts much easier to read because you can always tell where a name came from.
+
+---
+
+# 10 Things That Trip Up R Users
+
+.small[
+1. **Zero-indexing.** `x[0]` is the first element.
+2. **Indentation is syntax.** A misplaced space breaks your script.
+3. **No vectorized math on lists.** Use NumPy/pandas.
+4. **`==` for comparison, `=` for assignment.** No `<-`.
+5. **`True`/`False` are capitalized.**
+6. **`None` instead of `NULL`/`NA`.** No type info. NumPy uses `np.nan` for missing floats.
+7. **Methods vs functions.** `nums.append(6)` mutates in place; `sorted(nums)` returns a new sorted copy.
+8. **Mutability matters.** Lists/dicts mutable; tuples/strings immutable.
+9. **`for` loops are fine here.** Python culture is OK with them.
+10. **`print()` is a function**, not a statement.
+]
+
+---
+class: inverse, center, middle
+
+# Interview Questions
+
+---
+
+# Q1. Function: miles per hour
+
+```python
+def mph(distance, minutes):
+    """Compute miles per hour."""
+    return distance / (minutes / 60)
+
+mph(5, 15)   # → 20.0
+```
+
+--
+
+The bare-minimum function. Note the docstring (`"""..."""`) is the Python convention.
+
+---
+
+# Q2. Average fare for SF rides
+
+```python
+rides = [
+    {"city": "SF", "fare": 12},
+    {"city": "NY", "fare": 18},
+    {"city": "SF", "fare": 9},
+]
+
+sf_fares = [r["fare"] for r in rides if r["city"] == "SF"]
+sum(sf_fares) / len(sf_fares)
+# → 10.5
+```
+
+--
+
+The list comprehension is the idiomatic Python; the loop version is uglier.
+
+---
+
+# Q3. Read a CSV with pandas
+
+```python
+import pandas as pd
+rides = pd.read_csv("data/rides.csv")
+rides.head()
+```
+
+--
+
+This gets you to `rides` as a `DataFrame`, which is the Python equivalent of `data.frame` / `tibble`. Module 2 covers everything you can do with one.
+
+---
+
+# Q4. Invert a dict
+
+```python
+original = {"a": 1, "b": 2, "c": 3}
+inverted = {v: k for k, v in original.items()}
+# → {1: 'a', 2: 'b', 3: 'c'}
+```
+
+--
+
+The `.items()` method returns `(key, value)` pairs. Combined with the dict comprehension, the answer is one line.
+
+---
+
+# Q5. Unique sorted even numbers
+
+```python
+nums = [4, 7, 2, 8, 4, 1, 6, 3, 8, 2]
+sorted({n for n in nums if n % 2 == 0})
+# → [2, 4, 6, 8]
+```
+
+--
+
+The `{...}` is a **set comprehension** (curly braces, but no `key: value`). Wrapping in `sorted()` gives a sorted list back.
+
+---
+class: inverse
+
+# The Key Takeaways
+
+<br>
+
+### 1. Python is "R syntax with zero-indexing, explicit imports, and load-bearing whitespace." Once you internalize those three, you can read any Python data script.
+
+--
+
+<br>
+
+### 2. List/dict/set comprehensions replace most uses of `for` loops and `sapply`/`map`. Memorize the pattern.
+
+--
+
+<br>
+
+### 3. Lists are not vectorized — you need NumPy or pandas for that. Module 2 starts there.
+
+---
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td>1</td><td>Python for R Users <i>(just finished)</i></td><td>✓ done</td></tr>
+<tr><td><b>2</b></td><td><b>pandas basics</b></td><td>next</td></tr>
+<tr><td>3</td><td>Joins, merges, group-by recipes</td><td>upcoming</td></tr>
+<tr><td>4</td><td>Regression and A/B tests with statsmodels</td><td>upcoming</td></tr>
+<tr><td>5</td><td>End-to-end interview scenario</td><td>upcoming</td></tr>
+</table>

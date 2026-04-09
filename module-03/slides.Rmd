@@ -1,0 +1,315 @@
+---
+title: "Module 3: Joins, Merges, Group-By Recipes"
+subtitle: "The bridge from one-liners to real analysis"
+output:
+  xaringan::moon_reader:
+    css: [default, default-fonts]
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+
+```{css, echo=FALSE}
+.remark-code, .remark-inline-code { font-size: 80%; }
+.remark-slide-content { padding: 1em 2em; }
+.small { font-size: 80%; }
+```
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
+<tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
+<tr><td><b>3</b></td><td><b>Joins, merges, group-by recipes</b> <i>(you are here)</i></td><td>← current</td></tr>
+<tr><td>4</td><td>Regression and A/B tests with statsmodels</td><td>upcoming</td></tr>
+<tr><td>5</td><td>End-to-end interview scenario</td><td>upcoming</td></tr>
+</table>
+
+---
+
+# `merge`: pandas' join
+
+| dplyr | pandas |
+|---|---|
+| `inner_join(a, b, by = "id")` | `a.merge(b, on="id", how="inner")` |
+| `left_join(a, b, by = "id")` | `a.merge(b, on="id", how="left")` |
+| `full_join(a, b, by = "id")` | `a.merge(b, on="id", how="outer")` |
+| `semi_join(a, b, by = "id")` | `a[a["id"].isin(b["id"])]` |
+| `anti_join(a, b, by = "id")` | `a[~a["id"].isin(b["id"])]` |
+
+--
+
+`merge` defaults to `how="inner"`. **Always specify `how=` explicitly** so the join intent is obvious to whoever reads your code.
+
+---
+
+# A First Merge
+
+```python
+merged = rides.merge(
+    drivers,
+    on="driver_id",
+    how="left",
+    suffixes=("_ride", "_driver")
+)
+```
+
+--
+
+The `suffixes=` argument disambiguates columns that exist in both tables (here, `city`). dplyr uses `.x` / `.y` by default; pandas uses `_x` / `_y` unless you override.
+
+---
+
+# Different Names on Each Side
+
+```python
+rides.merge(
+    drivers,
+    left_on  = "driver_id",
+    right_on = "id",
+    how      = "left"
+)
+```
+
+dplyr equivalent: `left_join(rides, drivers, by = c("driver_id" = "id"))`.
+
+--
+
+For very large tables, joining on the index is faster:
+
+```python
+drivers_idx = drivers.set_index("driver_id")
+rides.merge(drivers_idx, left_on="driver_id", right_index=True, how="left")
+```
+
+---
+
+# Anti-join
+
+```python
+# Drivers who never had a ride
+no_ride_drivers = drivers[~drivers["driver_id"].isin(rides["driver_id"])]
+```
+
+--
+
+The `~` is "NOT". `isin` is the pandas equivalent of `%in%`.
+
+---
+
+# Per-Group Top: Most-Frequent Driver per Rider
+
+```python
+top_driver_per_rider = (
+    rides
+    .groupby(["rider_id", "driver_id"])
+    .size()
+    .reset_index(name="n_rides")
+    .sort_values(["rider_id", "n_rides"], ascending=[True, False])
+    .drop_duplicates("rider_id")
+)
+```
+
+--
+
+The pattern: count per (group, sub-group), sort, then `drop_duplicates` on the group keeps only the first (= largest count) row per group.
+
+---
+
+# `transform`: Group Stat Broadcast Back to Rows
+
+The cleanest way to compute "deviation from group mean":
+
+```python
+rides["city_avg_fare"] = (
+    rides.groupby("city")["fare_usd"].transform("mean")
+)
+rides["fare_above_city_avg"] = rides["fare_usd"] - rides["city_avg_fare"]
+```
+
+--
+
+`.transform("mean")` returns a Series the same length as the original — the group mean broadcast to every row in that group. **Memorize this idiom.**
+
+---
+
+# Top-N per Group
+
+```python
+# Method 1: rank-then-filter
+rides["fare_rank"] = (
+    rides
+    .groupby("city")["fare_usd"]
+    .rank(method="dense", ascending=False)
+)
+top5 = rides[rides["fare_rank"] <= 5]
+```
+
+--
+
+```python
+# Method 2: sort + groupby + head (cleaner)
+top5 = (
+    rides
+    .sort_values(["city", "fare_usd"], ascending=[True, False])
+    .groupby("city")
+    .head(5)
+)
+```
+
+--
+
+Method 2 is what idiomatic pandas looks like.
+
+---
+
+# `concat`: bind_rows / bind_cols
+
+```python
+# Stacking by row (rbind / dplyr::bind_rows)
+combined = pd.concat([df1, df2, df3], ignore_index=True)
+
+# By column (cbind / dplyr::bind_cols)
+combined = pd.concat([df1, df2], axis=1)
+```
+
+--
+
+`ignore_index=True` is important when stacking — otherwise pandas tries to align on the original index, which often produces NaNs.
+
+---
+
+# Common Traps
+
+**1. Many-to-many merges.** If both sides have duplicates on the key, you get a Cartesian product within each key group. Use `validate="many_to_one"` to assert your assumption.
+
+--
+
+**2. Default `how="inner"` silently drops rows.** Always specify `how=`.
+
+--
+
+**3. Index alignment in `concat`.** Use `ignore_index=True` to avoid surprises.
+
+--
+
+**4. `transform` requires same-length output.** For variable-length output use `apply()`.
+
+---
+class: inverse, center, middle
+
+# Interview Questions
+
+---
+
+# Q1. LEFT merge rides + drivers
+
+```python
+merged = rides.merge(
+    drivers, on="driver_id", how="left",
+    suffixes=("_ride", "_driver")
+)
+```
+
+--
+
+The `suffixes=` argument handles the duplicate `city` column. Always be explicit about `how=`.
+
+---
+
+# Q2. Most-frequent driver per rider
+
+```python
+(rides
+ .groupby(["rider_id", "driver_id"])
+ .size()
+ .reset_index(name="n_rides")
+ .sort_values(["rider_id", "n_rides"], ascending=[True, False])
+ .drop_duplicates("rider_id")
+)
+```
+
+--
+
+Count → sort → keep first per group. The same pattern works for "most-recent X per Y", "highest-fare X per Y", etc.
+
+---
+
+# Q3. Per-city averages joined back
+
+```python
+rides["city_avg_fare"] = (
+    rides.groupby("city")["fare_usd"].transform("mean")
+)
+rides["fare_above_city_avg"] = rides["fare_usd"] - rides["city_avg_fare"]
+```
+
+--
+
+`.transform("mean")` is the one-liner. The dplyr equivalent is `mutate(city_avg_fare = mean(fare_usd), .by = city)`.
+
+---
+
+# Q4. Anti-join
+
+```python
+no_ride_drivers = drivers[~drivers["driver_id"].isin(rides["driver_id"])]
+```
+
+--
+
+`~` + `isin` is the canonical anti-join idiom.
+
+---
+
+# Q5. Top 3 fares per driver
+
+```python
+top3 = (
+    rides
+    .sort_values(["driver_id", "fare_usd"], ascending=[True, False])
+    .groupby("driver_id")
+    .head(3)
+)
+```
+
+--
+
+`groupby().head(N)` is the pandas idiom for top-N per group. Equivalent to `slice_max(n=3, by=driver_id)` in dplyr.
+
+---
+class: inverse
+
+# The Key Takeaways
+
+<br>
+
+### 1. `merge(..., how="left")` is your bread and butter. Always specify `how=`.
+
+--
+
+<br>
+
+### 2. `transform("mean")` broadcasts a group statistic back to row level. Memorize it.
+
+--
+
+<br>
+
+### 3. `sort_values + groupby().head(N)` is the canonical "top-N per group" idiom.
+
+---
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
+<tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
+<tr><td>3</td><td>Joins, merges, group-by recipes <i>(just finished)</i></td><td>✓ done</td></tr>
+<tr><td><b>4</b></td><td><b>Regression and A/B tests with statsmodels</b></td><td>next</td></tr>
+<tr><td>5</td><td>End-to-end interview scenario</td><td>upcoming</td></tr>
+</table>

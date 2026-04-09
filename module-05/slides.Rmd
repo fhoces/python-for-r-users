@@ -1,0 +1,285 @@
+---
+title: "Module 5: End-to-End Interview Scenario"
+subtitle: "Putting it all together"
+output:
+  xaringan::moon_reader:
+    css: [default, default-fonts]
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+
+```{css, echo=FALSE}
+.remark-code, .remark-inline-code { font-size: 80%; }
+.remark-slide-content { padding: 1em 2em; }
+.small { font-size: 80%; }
+```
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
+<tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
+<tr><td>3</td><td><a href="../module-03/slides.html">Joins, merges, group-by recipes</a></td><td>✓ done</td></tr>
+<tr><td>4</td><td><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></td><td>✓ done</td></tr>
+<tr><td><b>5</b></td><td><b>End-to-end interview scenario</b> <i>(you are here)</i></td><td>← current</td></tr>
+</table>
+
+---
+
+# What This Module Is
+
+The previous four modules were each one tool. This one is the **combination**.
+
+--
+
+What you'd actually do in 15 minutes when an interviewer hands you a CSV and a question.
+
+--
+
+Three end-to-end scenarios at increasing difficulty, plus a 30-minute mock interview structure to drill on your own.
+
+---
+
+# The General Structure
+
+| Step | Time | What |
+|---|---|---|
+| 1 | 0-2 min | Read the prompt twice. Restate it in your own words. |
+| 2 | 2-5 min | Look at the data. `head`, `shape`, `dtypes`, `describe`. |
+| 3 | 5-15 min | Write the code, top-down. Don't optimize. |
+| 4 | 15-20 min | Sanity check. Same answer two ways if possible. |
+| 5 | 20-25 min | Plot the result if applicable. |
+| 6 | 25-28 min | Restate the answer in plain English. |
+| 7 | 28-30 min | Note caveats: identification, sample, what you'd do with more time. |
+
+--
+
+**Biggest mistake:** jumping into code before understanding the question. **Second biggest:** silence. Talk while you type.
+
+---
+class: inverse, center, middle
+
+# Scenario 1
+## A/B Test Analysis
+
+---
+
+# The Prompt
+
+> *"We ran an A/B test on a new dispatch algorithm in five cities. Treated users saw the new algorithm; control users saw the old one. Compute the average treatment effect on rider spend, with a 95% CI and a plot."*
+
+---
+
+# The Code
+
+```python
+import pandas as pd
+import statsmodels.formula.api as smf
+
+ab = pd.read_csv("data/ab_test.csv")
+
+# Step 1: balance check
+print(ab.groupby("treatment")["spend_usd"].agg(["count","mean","std"]))
+
+# Step 2: OLS = the t-test, with HC3 SEs
+fit = smf.ols("spend_usd ~ treatment", data=ab).fit(cov_type="HC3")
+ate    = fit.params["treatment"]
+ate_ci = fit.conf_int().loc["treatment"]
+print(f"ATE: ${ate:.2f}, 95% CI: [${ate_ci[0]:.2f}, ${ate_ci[1]:.2f}]")
+
+# Step 3: variance reduction with city FE
+fit_fe = smf.ols("spend_usd ~ treatment + C(city)", data=ab).fit(cov_type="HC3")
+print(f"With city FE: ATE = ${fit_fe.params['treatment']:.2f}")
+```
+
+---
+
+# The Plain-English Answer
+
+> "The new dispatch algorithm increased rider spend by approximately $1.80 per user, with a 95% confidence interval of [$1.50, $2.10]. The estimate is robust to controlling for city fixed effects."
+
+--
+
+**Notice what's in this sentence:**
+- The point estimate
+- The CI
+- A robustness statement
+
+--
+
+You should be able to write this sentence without thinking. It's the difference between "ran the regression" and "answered the question."
+
+---
+class: inverse, center, middle
+
+# Scenario 2
+## Process a Folder of CSVs
+
+---
+
+# The Prompt
+
+> *"We have one CSV per city in `data/by_city/`. Compute the daily ride count for each city and produce a single output table."*
+
+---
+
+# The Code
+
+```python
+import pandas as pd
+from pathlib import Path
+
+# Step 1: list the files
+files = list(Path("data/by_city").glob("*.csv"))
+
+# Step 2: read each, add the city name, concat
+dfs = []
+for f in files:
+    city = f.stem.replace("_", " ")
+    df = pd.read_csv(f, parse_dates=["pickup_at"])
+    df["city"] = city
+    dfs.append(df)
+
+all_rides = pd.concat(dfs, ignore_index=True)
+
+# Step 3: daily counts per city
+daily = (
+    all_rides
+    .assign(date = all_rides["pickup_at"].dt.date)
+    .groupby(["city", "date"])
+    .size()
+    .reset_index(name="n_rides")
+)
+```
+
+--
+
+The patterns to memorize: `Path.glob`, `for` + `pd.concat`, `.dt.date`.
+
+---
+class: inverse, center, middle
+
+# Scenario 3
+## Disparate-Impact Audit
+
+---
+
+# The Prompt
+
+> *"We're auditing the surge-pricing algorithm. Are higher-minority neighborhoods charged more per mile, conditional on trip characteristics?"*
+
+This is the Pandey-Caliskan setup translated into pandas.
+
+---
+
+# The Code
+
+```python
+rides["fare_per_mile"] = rides["fare_usd"] / rides["distance_mi"]
+
+# Quick comparison
+print(rides
+    .assign(high_min = (rides["pct_minority"] >= 0.5).astype(int))
+    .groupby("high_min")["fare_per_mile"]
+    .agg(["mean", "median", "count"]))
+
+# Regression with controls
+fit = smf.ols(
+    "fare_per_mile ~ pct_minority + distance_mi + duration_min + C(hour)",
+    data=rides.assign(hour = rides["pickup_at"].dt.hour)
+).fit(cov_type="HC3")
+
+print(fit.summary().tables[1])
+```
+
+---
+
+# The Careful Interpretation
+
+```python
+coef = fit.params["pct_minority"]
+print(f"A 10pp increase in pct_minority → ${coef * 0.1:.3f}")
+print(f"higher fare per mile, conditional on controls.")
+```
+
+--
+
+> "After controlling for distance, duration, and hour of day, neighborhoods with a 10 pp higher minority share have $X higher fare per mile, on average. This is documenting *disparate impact*; the causal mechanism is not identified in this regression."
+
+--
+
+**The "documenting disparate impact, not identifying the mechanism" caveat is the tell** that you understand what regression with controls can and can't do. Memorize the phrase.
+
+---
+
+# What to Install Before the Interview
+
+```bash
+pip install pandas numpy statsmodels scipy matplotlib seaborn
+pip install linearmodels   # if they ask about panel data
+```
+
+---
+
+# What to Know Cold
+
+.small[
+- `pd.read_csv` with `parse_dates`, `dtype`, `usecols`
+- `df[df["x"] > 5]`, `df.query("x > 5")`
+- `df.groupby("g")["y"].agg([...])` and `.transform("mean")`
+- `df.merge(other, on=..., how=...)` with `validate="..."`
+- `smf.ols("y ~ x + C(g)", data=df).fit(cov_type="HC3")`
+- Reading a regression summary: which numbers to report
+- t-test, confidence interval, p-value semantics
+- Plotting basics with `df.plot(...)` or `matplotlib.pyplot`
+]
+
+--
+
+**The closing exercise:** the exercise file has six end-to-end mini-scenarios. Drill them with a 5-minute timer per question. Then drill them again the next day.
+
+---
+class: inverse
+
+# The Course in One Slide
+
+<br>
+
+### 1. Module 1: Python is R syntax with zero-indexing, explicit imports, and load-bearing whitespace.
+
+--
+
+<br>
+
+### 2. Modules 2-3: pandas is dplyr with method chains. The cheat sheet covers 95% of what you need.
+
+--
+
+<br>
+
+### 3. Module 4: statsmodels gives you R-style formulas and the OLS-as-A/B-test pattern. The hardest part is over.
+
+--
+
+<br>
+
+### 4. Module 5: in the interview, talk while you type and always restate the answer in plain English.
+
+---
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
+<tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
+<tr><td>3</td><td><a href="../module-03/slides.html">Joins, merges, group-by recipes</a></td><td>✓ done</td></tr>
+<tr><td>4</td><td><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></td><td>✓ done</td></tr>
+<tr><td>5</td><td>End-to-end interview scenario <i>(just finished)</i></td><td>✓ done</td></tr>
+</table>
+
+**You're done.** Now drill the questions until you can answer each one in 5 minutes flat.
