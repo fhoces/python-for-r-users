@@ -70,7 +70,7 @@ rides.dtypes         # column types
 | Mutate | `mutate(df, rate = fare/dist)` | `df["rate"] = df["fare"]/df["dist"]` |
 | Sort | `arrange(df, desc(fare))` | `df.sort_values("fare", ascending=False)` |
 | Summarise | `summarise(df, avg = mean(fare))` | `df["fare"].mean()` |
-| Group + summarise | `group_by(df, city) |&gt; summarise(...)` | `df.groupby("city")["fare"].mean()` |
+| Group + summarise | `group_by(df, city) %&gt;% summarise(...)` | `df.groupby("city")["fare"].mean()` |
 | Distinct | `distinct(df, id)` | `df.drop_duplicates("id")` |
 ]
 
