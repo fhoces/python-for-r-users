@@ -146,6 +146,10 @@ nums[1:3]  # → [2, 3]   (right-exclusive)
 
 **Lists are NOT vectorized.** `[1, 2, 3] + 1` is a `TypeError`. For vectorized math you need NumPy or pandas (Module 2).
 
+--
+
+**Mutable vs immutable:** "mutable" means you can change it after creating it. `nums[0] = 99` works on a list (mutable) but crashes on a tuple (immutable). **Watch out:** in R, modifying a vector makes a copy. In Python, modifying a list changes the **original** — if you pass it to a function, the function can alter your data.
+
 ---
 
 # Comprehensions: The Python Idiom
