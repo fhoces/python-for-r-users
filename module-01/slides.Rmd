@@ -155,7 +155,12 @@ evens = [x for x in range(20) if x % 2 == 0]
 
 # Dict comprehension
 square_map = {x: x ** 2 for x in range(5)}
+# → {0: 0, 1: 1, 2: 4, 3: 9, 4: 16}
 ```
+
+--
+
+**Reading that last line:** `{x: x ** 2 for x in range(5)}` means "for each `x` from 0 to 4, create a key-value pair where the key is `x` and the value is `x` squared." The `{}` braces make it a dict (not a list). Like `setNames(0:4, (0:4)^2)` in R, but more readable.
 
 --
 
