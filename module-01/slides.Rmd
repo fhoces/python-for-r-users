@@ -30,6 +30,39 @@ output:
 
 ---
 
+# Before We Start: Setup
+
+**Step 1.** Build the CSV data files (once, in your terminal):
+
+```bash
+cd ~/Desktop/sandbox/python-for-r-users
+Rscript data/build_csvs.R
+```
+
+--
+
+**Step 2.** Install **Positron** — a free IDE from the RStudio team that handles R *and* Python natively. Same keyboard shortcuts you already know.
+
+Download from [positron.posit.co](https://positron.posit.co/), drag to Applications.
+
+--
+
+**Step 3.** Open the course folder: `File → Open Folder → python-for-r-users`
+
+Open `module-01/exercise.py`. Highlight code → `Cmd+Return` to send to the Python console — just like RStudio.
+
+--
+
+**Test it:** highlight and run this:
+
+```python
+print(1 + 1)
+```
+
+If you see `2` in the console, you're ready.
+
+---
+
 # The Big Differences in 90 Seconds
 
 | | R | Python |
