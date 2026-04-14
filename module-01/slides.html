@@ -267,11 +267,7 @@ from statsmodels.formula.api import ols   # specific name from a module
 
 --
 
-R equivalent: `library(...)`, but Python is **explicit**. You have to name the module every time you use a function from it (`pd.read_csv`, not `read_csv`).
-
---
-
-Verbose, but makes scripts much easier to read because you can always tell where a name came from.
+In R, `library(dplyr)` dumps all functions into your namespace — you just call `filter()` without saying where it came from (and get conflicts when two packages share a name). In Python, you **always prefix**: `pd.read_csv()`, `np.mean()`. Verbose, but you always know which module a function belongs to — no conflicts, no guessing.
 
 ---
 
