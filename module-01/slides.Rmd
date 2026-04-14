@@ -325,6 +325,8 @@ rides = [{"city": "SF", "fare": 12}, {"city": "NY", "fare": 18},
 ```python
 sf_fares = [r["fare"] for r in rides if r["city"] == "SF"]
 print(sum(sf_fares) / len(sf_fares))   # → 10.5
+# Note: Python has no built-in mean(). Use sum()/len(),
+# or numpy.mean(), or once in pandas: series.mean()
 ```
 
 ---
