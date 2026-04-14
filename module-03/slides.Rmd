@@ -205,80 +205,77 @@ class: inverse, center, middle
 
 ---
 
-# Q1. LEFT merge rides + drivers
+# Q1. Merge rides with drivers on driver_id, keeping all rides.
 
-```python
-merged = rides.merge(
-    drivers, on="driver_id", how="left",
-    suffixes=("_ride", "_driver")
-)
-```
+*Hint: `.merge(..., how="left")` + `suffixes=` for duplicate columns.*
 
 --
 
-The `suffixes=` argument handles the duplicate `city` column. Always be explicit about `how=`.
+```python
+merged = rides.merge(drivers, on="driver_id", how="left",
+                     suffixes=("_ride", "_driver"))
+```
 
 ---
 
-# Q2. Most-frequent driver per rider
+# Q2. For each rider, find the driver they've ridden with most often.
+
+*Hint: count per (rider, driver) pair, sort, keep first per rider.*
+
+--
 
 ```python
 (rides
- .groupby(["rider_id", "driver_id"])
- .size()
+ .groupby(["rider_id", "driver_id"]).size()
  .reset_index(name="n_rides")
  .sort_values(["rider_id", "n_rides"], ascending=[True, False])
- .drop_duplicates("rider_id")
-)
+ .drop_duplicates("rider_id"))
 ```
 
---
-
-Count → sort → keep first per group. The same pattern works for "most-recent X per Y", "highest-fare X per Y", etc.
+Count → sort → `drop_duplicates` keeps the first (= largest) per group.
 
 ---
 
-# Q3. Per-city averages joined back
+# Q3. Compute per-city average fare and add it as a column on each ride.
+
+*Hint: `.groupby().transform("mean")`.*
+
+--
 
 ```python
-rides["city_avg_fare"] = (
-    rides.groupby("city")["fare_usd"].transform("mean")
-)
+rides["city_avg_fare"] = rides.groupby("city")["fare_usd"].transform("mean")
 rides["fare_above_city_avg"] = rides["fare_usd"] - rides["city_avg_fare"]
 ```
 
---
-
-`.transform("mean")` is the one-liner. The dplyr equivalent is `mutate(city_avg_fare = mean(fare_usd), .by = city)`.
+dplyr equivalent: `mutate(city_avg_fare = mean(fare_usd), .by = city)`.
 
 ---
 
-# Q4. Anti-join
+# Q4. Find drivers in `drivers.csv` who never appear in `rides.csv`.
+
+*Hint: `~` + `.isin()` = anti-join.*
+
+--
 
 ```python
 no_ride_drivers = drivers[~drivers["driver_id"].isin(rides["driver_id"])]
 ```
 
---
-
-`~` + `isin` is the canonical anti-join idiom.
-
 ---
 
-# Q5. Top 3 fares per driver
+# Q5. For each driver, keep only their top 3 highest-fare rides.
 
-```python
-top3 = (
-    rides
-    .sort_values(["driver_id", "fare_usd"], ascending=[True, False])
-    .groupby("driver_id")
-    .head(3)
-)
-```
+*Hint: `.sort_values()` + `.groupby().head(3)`.*
 
 --
 
-`groupby().head(N)` is the pandas idiom for top-N per group. Equivalent to `slice_max(n=3, by=driver_id)` in dplyr.
+```python
+top3 = (rides
+ .sort_values(["driver_id", "fare_usd"], ascending=[True, False])
+ .groupby("driver_id").head(3))
+```
+
+`groupby().head(N)` = top-N per group. Like `slice_max(n=3, by=driver_id)` in dplyr.
 
 ---
 class: inverse

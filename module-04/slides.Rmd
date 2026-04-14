@@ -264,23 +264,26 @@ class: inverse, center, middle
 
 ---
 
-# Q1. OLS with robust SEs
+# Q1. Regress fare on distance + duration + city with robust SEs. Report coefficients.
+
+*Hint: `smf.ols("y ~ x + C(g)", data=df).fit(cov_type="HC3")`.*
+
+--
 
 ```python
-fit = smf.ols(
-    "fare_usd ~ distance_mi + duration_min + C(city)",
-    data=rides
-).fit(cov_type="HC3")
-
-pd.DataFrame({
-    "coef": fit.params, "se": fit.bse,
-    "t": fit.tvalues,   "p": fit.pvalues
-}).round(4)
+fit = smf.ols("fare_usd ~ distance_mi + duration_min + C(city)",
+              data=rides).fit(cov_type="HC3")
+pd.DataFrame({"coef": fit.params, "se": fit.bse,
+              "t": fit.tvalues, "p": fit.pvalues}).round(4)
 ```
 
 ---
 
-# Q2. A/B test treatment effect
+# Q2. Compute the A/B test treatment effect on spend, with a 95% CI.
+
+*Hint: OLS of `spend ~ treatment` with HC3 SEs. `.params`, `.conf_int()`.*
+
+--
 
 ```python
 fit_ab = smf.ols("spend_usd ~ treatment", data=ab).fit(cov_type="HC3")
@@ -289,28 +292,26 @@ ate_ci = fit_ab.conf_int().loc["treatment"]
 print(f"ATE: {ate:.3f}, 95% CI: [{ate_ci[0]:.3f}, {ate_ci[1]:.3f}]")
 ```
 
---
-
-This is the answer to "is the A/B test result statistically significant" — three lines.
+Three lines. This is the answer to "is the A/B test significant."
 
 ---
 
-# Q3. Difference-in-differences
+# Q3. Estimate a difference-in-differences with city and month fixed effects.
+
+*Hint: create `did = treated * post`, include it in the formula, cluster SEs by city.*
+
+--
 
 ```python
 panel["did"] = panel["treated"] * panel["post"]
-
 did_fit = smf.ols(
     "outcome ~ treated + post + did + C(city) + C(month)",
     data=panel
 ).fit(cov_type="cluster", cov_kwds={"groups": panel["city"]})
-
 did_fit.params["did"]
 ```
 
---
-
-The DiD estimate is the coefficient on the interaction. Cluster SEs at the unit of treatment assignment (here: `city`).
+The `did` coefficient is the DiD estimate. Cluster at the treatment-assignment level.
 
 ---
 class: inverse

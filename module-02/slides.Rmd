@@ -223,7 +223,11 @@ class: inverse, center, middle
 
 ---
 
-# Q1. Weekday morning rides, mean fare by city
+# Q1. Keep only weekday rides between 7-9am. Compute mean fare by city.
+
+*Hint: `.dt.dayofweek`, `.dt.hour` for filtering, then `.groupby().mean()`.*
+
+--
 
 ```python
 morning_weekday = rides[
@@ -234,13 +238,15 @@ morning_weekday = rides[
 morning_weekday.groupby("city")["fare_usd"].mean().round(2)
 ```
 
---
-
-The pattern: filter with multiple conditions, then group-by-summarise. Notice the parentheses around each `&` condition.
+Notice the parentheses around each `&` condition — required.
 
 ---
 
-# Q2. Top 5 most expensive rides per city
+# Q2. Find the top 5 most expensive rides (by fare per mile) in each city.
+
+*Hint: `.assign()` to create fare_per_mile, `.sort_values()`, `.groupby().head(5)`.*
+
+--
 
 ```python
 (rides
@@ -251,46 +257,51 @@ The pattern: filter with multiple conditions, then group-by-summarise. Notice th
 )
 ```
 
---
-
-`groupby().head(N)` is the pandas idiom for "top-N per group". Equivalent to `slice_max(n=5, by=city)` in dplyr.
+`groupby().head(N)` = "top-N per group". Like `slice_max(n=5, by=city)` in dplyr.
 
 ---
 
-# Q3. Peak-hour share by city
+# Q3. What share of rides per city are during peak hours (7-9am or 5-7pm)?
 
+*Hint: create an `is_peak` column with `.between()`, then `.agg()` with count and sum.*
+
+--
+
+.small[
 ```python
 rides["is_peak"] = (
     (rides["pickup_at"].dt.hour.between(7, 8)) |
     (rides["pickup_at"].dt.hour.between(17, 18))
 ).astype(int)
 
-(rides
- .groupby("city")
- .agg(
-     n_rides    = ("ride_id", "count"),
-     n_peak     = ("is_peak", "sum")
- )
- .assign(peak_share = lambda d: (d["n_peak"] / d["n_rides"]).round(3))
-)
+(rides.groupby("city")
+ .agg(n_rides=("ride_id","count"), n_peak=("is_peak","sum"))
+ .assign(peak_share = lambda d: (d["n_peak"] / d["n_rides"]).round(3)))
 ```
+]
 
 ---
 
-# Q4. Top 3 cities by recent volume
+# Q4. Which are the top 3 cities by ride volume in the last 30 days of 2025?
+
+*Hint: filter on date, `.groupby().size()`, `.sort_values().head(3)`.*
+
+--
 
 ```python
 recent = rides[rides["pickup_at"] >= "2025-12-02"]
 recent.groupby("city").size().sort_values(ascending=False).head(3)
 ```
 
---
-
-`.size()` is the pandas equivalent of `dplyr::n()` inside a `summarise`.
+`.size()` = pandas equivalent of `dplyr::n()` inside a `summarise`.
 
 ---
 
-# Q5. Long → wide pivot
+# Q5. Pivot the hourly ride counts (city × hour → wide table with hours as columns).
+
+*Hint: `.groupby().size()` to get the long table, then `.pivot()`.*
+
+--
 
 ```python
 long = (
@@ -303,9 +314,7 @@ long = (
 wide = long.pivot(index="city", columns="hour", values="n_rides")
 ```
 
---
-
-`pivot()` for long → wide. `melt()` for wide → long.
+`pivot()` = long → wide. `melt()` = wide → long.
 
 ---
 class: inverse
