@@ -267,17 +267,26 @@ Verbose, but makes scripts much easier to read because you can always tell where
 
 # 10 Things That Trip Up R Users
 
-.small[
+.pull-left[
 1. **Zero-indexing.** `x[0]` is the first element.
+
 2. **Indentation is syntax.** A misplaced space breaks your script.
+
 3. **No vectorized math on lists.** Use NumPy/pandas.
+
 4. **`==` for comparison, `=` for assignment.** No `<-`.
+
 5. **`True`/`False` are capitalized.**
-6. **`None` instead of `NULL`/`NA`.** No type info. NumPy uses `np.nan` for missing floats.
-7. **Methods vs functions.** `nums.append(6)` mutates in place; `sorted(nums)` returns a new sorted copy.
-8. **Mutability matters.** Lists/dicts mutable; tuples/strings immutable.
-9. **`for` loops are fine here.** Python culture is OK with them.
-10. **`print()` is a function**, not a statement.
+]
+
+.pull-right[
+<ol start="6">
+<li><b><code>None</code> instead of <code>NULL</code>/<code>NA</code>.</b> NumPy uses <code>np.nan</code> for missing floats.</li>
+<li><b>Methods vs functions.</b> <code>nums.append(6)</code> mutates in place; <code>sorted(nums)</code> returns a copy.</li>
+<li><b>Mutability matters.</b> Lists/dicts mutable; tuples/strings immutable.</li>
+<li><b><code>for</code> loops are fine here.</b> Python culture is OK with them.</li>
+<li><b><code>print()</code> is a function</b>, not a statement.</li>
+</ol>
 ]
 
 ---

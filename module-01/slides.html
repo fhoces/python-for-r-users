@@ -277,17 +277,26 @@ Verbose, but makes scripts much easier to read because you can always tell where
 
 # 10 Things That Trip Up R Users
 
-.small[
+.pull-left[
 1. **Zero-indexing.** `x[0]` is the first element.
+
 2. **Indentation is syntax.** A misplaced space breaks your script.
+
 3. **No vectorized math on lists.** Use NumPy/pandas.
+
 4. **`==` for comparison, `=` for assignment.** No `&lt;-`.
+
 5. **`True`/`False` are capitalized.**
-6. **`None` instead of `NULL`/`NA`.** No type info. NumPy uses `np.nan` for missing floats.
-7. **Methods vs functions.** `nums.append(6)` mutates in place; `sorted(nums)` returns a new sorted copy.
-8. **Mutability matters.** Lists/dicts mutable; tuples/strings immutable.
-9. **`for` loops are fine here.** Python culture is OK with them.
-10. **`print()` is a function**, not a statement.
+]
+
+.pull-right[
+&lt;ol start="6"&gt;
+&lt;li&gt;&lt;b&gt;&lt;code&gt;None&lt;/code&gt; instead of &lt;code&gt;NULL&lt;/code&gt;/&lt;code&gt;NA&lt;/code&gt;.&lt;/b&gt; NumPy uses &lt;code&gt;np.nan&lt;/code&gt; for missing floats.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Methods vs functions.&lt;/b&gt; &lt;code&gt;nums.append(6)&lt;/code&gt; mutates in place; &lt;code&gt;sorted(nums)&lt;/code&gt; returns a copy.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Mutability matters.&lt;/b&gt; Lists/dicts mutable; tuples/strings immutable.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;&lt;code&gt;for&lt;/code&gt; loops are fine here.&lt;/b&gt; Python culture is OK with them.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;&lt;code&gt;print()&lt;/code&gt; is a function&lt;/b&gt;, not a statement.&lt;/li&gt;
+&lt;/ol&gt;
 ]
 
 ---
