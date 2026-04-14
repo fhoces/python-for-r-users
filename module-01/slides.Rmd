@@ -282,7 +282,7 @@ Verbose, but makes scripts much easier to read because you can always tell where
 .pull-right[
 <ol start="6">
 <li><b><code>None</code> instead of <code>NULL</code>/<code>NA</code>.</b> NumPy uses <code>np.nan</code> for missing floats.</li>
-<li><b>Methods vs functions.</b> <code>nums.append(6)</code> mutates in place; <code>sorted(nums)</code> returns a copy.</li>
+<li><b>Methods vs functions.</b> <code>nums.append(6)</code> changes <code>nums</code> itself (nothing returned). <code>sorted(nums)</code> returns a new sorted list and leaves <code>nums</code> alone. In R, both would return a new object. In Python, <code>.method()</code> often mutates; <code>function()</code> often copies.</li>
 <li><b>Mutability matters.</b> Lists/dicts mutable; tuples/strings immutable.</li>
 <li><b><code>for</code> loops are fine here.</b> Python culture is OK with them.</li>
 <li><b><code>print()</code> is a function</b>, not a statement.</li>
