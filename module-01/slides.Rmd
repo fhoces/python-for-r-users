@@ -296,43 +296,44 @@ class: inverse, center, middle
 
 ---
 
-# Q1. Function: miles per hour
+# Q1. Write a function that computes miles per hour given distance (mi) and time (min).
+
+*Hint: `def`, division, `return`.*
+
+--
 
 ```python
 def mph(distance, minutes):
-    """Compute miles per hour."""
     return distance / (minutes / 60)
 
-mph(5, 15)   # → 20.0
+print(mph(5, 15))   # → 20.0
 ```
-
---
-
-The bare-minimum function. Note the docstring (`"""..."""`) is the Python convention.
 
 ---
 
-# Q2. Average fare for SF rides
+# Q2. Given a list of ride dicts, compute the average fare for SF rides only.
 
 ```python
-rides = [
-    {"city": "SF", "fare": 12},
-    {"city": "NY", "fare": 18},
-    {"city": "SF", "fare": 9},
-]
-
-sf_fares = [r["fare"] for r in rides if r["city"] == "SF"]
-sum(sf_fares) / len(sf_fares)
-# → 10.5
+rides = [{"city": "SF", "fare": 12}, {"city": "NY", "fare": 18},
+         {"city": "SF", "fare": 9}]
 ```
+
+*Hint: list comprehension with a filter, then `sum() / len()`.*
 
 --
 
-The list comprehension is the idiomatic Python; the loop version is uglier.
+```python
+sf_fares = [r["fare"] for r in rides if r["city"] == "SF"]
+print(sum(sf_fares) / len(sf_fares))   # → 10.5
+```
 
 ---
 
-# Q3. Read a CSV with pandas
+# Q3. Read `data/rides.csv` with pandas and show the first 5 rows.
+
+*Hint: `pd.read_csv()` and `.head()`.*
+
+--
 
 ```python
 import pandas as pd
@@ -340,37 +341,46 @@ rides = pd.read_csv("data/rides.csv")
 rides.head()
 ```
 
---
-
-This gets you to `rides` as a `DataFrame`, which is the Python equivalent of `data.frame` / `tibble`. Module 2 covers everything you can do with one.
+This gives you a `DataFrame` — the Python equivalent of R's `data.frame` / `tibble`. Module 2 covers everything you can do with one.
 
 ---
 
-# Q4. Invert a dict
+# Q4. Invert a dict (swap keys and values).
 
 ```python
 original = {"a": 1, "b": 2, "c": 3}
-inverted = {v: k for k, v in original.items()}
-# → {1: 'a', 2: 'b', 3: 'c'}
+# → should become {1: "a", 2: "b", 3: "c"}
 ```
+
+*Hint: dict comprehension + `.items()`.*
 
 --
 
-The `.items()` method returns `(key, value)` pairs. Combined with the dict comprehension, the answer is one line.
+```python
+inverted = {v: k for k, v in original.items()}
+print(inverted)   # → {1: 'a', 2: 'b', 3: 'c'}
+```
+
+`.items()` returns `(key, value)` pairs. The comprehension flips them.
 
 ---
 
-# Q5. Unique sorted even numbers
+# Q5. Given a list of numbers, return the unique even numbers in sorted order.
 
 ```python
 nums = [4, 7, 2, 8, 4, 1, 6, 3, 8, 2]
-sorted({n for n in nums if n % 2 == 0})
-# → [2, 4, 6, 8]
 ```
+
+*Hint: set comprehension for uniqueness + filter, then `sorted()`.*
 
 --
 
-The `{...}` is a **set comprehension** (curly braces, but no `key: value`). Wrapping in `sorted()` gives a sorted list back.
+```python
+print(sorted({n for n in nums if n % 2 == 0}))
+# → [2, 4, 6, 8]
+```
+
+`{...}` with no `key: value` is a **set comprehension** — gives unique values. `sorted()` returns a list.
 
 ---
 class: inverse
