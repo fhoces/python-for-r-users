@@ -295,7 +295,7 @@ Verbose, but makes scripts much easier to read because you can always tell where
 &lt;li&gt;&lt;b&gt;Methods vs functions.&lt;/b&gt; &lt;code&gt;nums.append(6)&lt;/code&gt; changes &lt;code&gt;nums&lt;/code&gt; itself (nothing returned). &lt;code&gt;sorted(nums)&lt;/code&gt; returns a new sorted list and leaves &lt;code&gt;nums&lt;/code&gt; alone. In R, both would return a new object. In Python, &lt;code&gt;.method()&lt;/code&gt; often mutates; &lt;code&gt;function()&lt;/code&gt; often copies.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Mutability matters.&lt;/b&gt; Lists/dicts mutable; tuples/strings immutable.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;&lt;code&gt;for&lt;/code&gt; loops are fine here.&lt;/b&gt; Python culture is OK with them.&lt;/li&gt;
-&lt;li&gt;&lt;b&gt;&lt;code&gt;print()&lt;/code&gt; is a function&lt;/b&gt;, not a statement.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;No &lt;code&gt;%&gt;%&lt;/code&gt; pipe.&lt;/b&gt; Python uses method chaining instead: &lt;code&gt;df.filter().groupby().mean()&lt;/code&gt; — read left to right, like a pipe.&lt;/li&gt;
 &lt;/ol&gt;
 ]
 

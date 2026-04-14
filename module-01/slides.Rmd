@@ -285,7 +285,7 @@ Verbose, but makes scripts much easier to read because you can always tell where
 <li><b>Methods vs functions.</b> <code>nums.append(6)</code> changes <code>nums</code> itself (nothing returned). <code>sorted(nums)</code> returns a new sorted list and leaves <code>nums</code> alone. In R, both would return a new object. In Python, <code>.method()</code> often mutates; <code>function()</code> often copies.</li>
 <li><b>Mutability matters.</b> Lists/dicts mutable; tuples/strings immutable.</li>
 <li><b><code>for</code> loops are fine here.</b> Python culture is OK with them.</li>
-<li><b><code>print()</code> is a function</b>, not a statement.</li>
+<li><b>No <code>%>%</code> pipe.</b> Python uses method chaining instead: <code>df.filter().groupby().mean()</code> — read left to right, like a pipe.</li>
 </ol>
 ]
 
