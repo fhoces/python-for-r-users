@@ -106,11 +106,15 @@ The biggest mental shift: **indentation is part of the syntax**. There are no cu
 x = 42                  # int
 y = 3.14                # float
 name = "Allison"        # str
-greeting = f"Hello, {name}!"  # f-string interpolation
+greeting = f"Hello, {name}!"  # → "Hello, Allison!"
 
 is_ready = True         # bool (capitalized!)
 maybe = None            # Python's NULL
 ```
+
+--
+
+**f-strings:** the `f` before the quote says "replace `{...}` with the variable's value." Like R's `glue::glue("Hello, {name}!")` or `paste0("Hello, ", name, "!")`. Without the `f`, the braces are literal text.
 
 --
 
