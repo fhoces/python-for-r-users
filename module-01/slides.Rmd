@@ -168,13 +168,12 @@ R equivalent: `sapply()` / `purrr::map()`. Pythonic style prefers comprehensions
 
 ---
 
-# Control Flow
+# Control Flow: if / for
 
 ```python
 x = 3
-
-if x > 0:
-    print("positive")
+if x > 0:          # the : starts the block
+    print("positive")   # indentation = the block body
 elif x == 0:
     print("zero")
 else:
@@ -182,31 +181,36 @@ else:
 # → positive
 ```
 
---
-
 ```python
 nums = [10, 20, 30]
-
-for item in nums:
+for item in nums:   # like R's: for (item in nums) { ... }
     print(item)
-# → 10
-# → 20
-# → 30
+# → 10, 20, 30
 ```
 
---
+The `:` after the condition is required. Indentation defines the block (no `{}`). No parentheses around the condition.
+
+---
+
+# Control Flow: while
 
 ```python
 x = 3
 while x > 0:
     print(x)
     x -= 1       # shorthand for x = x - 1
-# → 3
-# → 2
-# → 1
+# → 3, 2, 1
 ```
 
-The `:` after the condition is required. Indentation defines blocks. No parentheses around the condition.
+--
+
+**R → Python cheat sheet:**
+
+| R | Python |
+|---|---|
+| `if (x > 0) { ... }` | `if x > 0:` + indent |
+| `for (i in 1:5) { ... }` | `for i in range(1, 6):` + indent |
+| `while (x > 0) { ... }` | `while x > 0:` + indent |
 
 ---
 
