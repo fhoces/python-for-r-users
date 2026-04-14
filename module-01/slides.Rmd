@@ -68,7 +68,7 @@ If you see `2` in the console, you're ready.
 | | R | Python |
 |---|---|---|
 | Indexing starts at | 1 | **0** |
-| Inclusive ranges? | Yes (`1:5` = 1..5) | **No** (`range(1,5)` = 0..4) |
+| Inclusive ranges? | Yes (`1:5` = 1..5) | **No** (`range(1,5)` = 1..4) |
 | Assignment | `<-` (or `=`) | `=` |
 | Indentation | cosmetic | **load-bearing** |
 | Vectorized? | Everything is | Lists no, NumPy/pandas yes |
