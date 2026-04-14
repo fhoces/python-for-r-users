@@ -62,19 +62,21 @@ rides.dtypes         # column types
 
 # The dplyr → pandas Cheat Sheet
 
-| Verb | dplyr | pandas |
+.small[
+| What | dplyr | pandas |
 |---|---|---|
-| Filter rows | `filter(fare &gt; 10)` | `rides[rides["fare_usd"] &gt; 10]` |
-| Select columns | `select(city, fare)` | `rides[["city", "fare_usd"]]` |
-| Add column | `mutate(rate = fare / dist)` | `rides["rate"] = rides["fare_usd"] / rides["distance_mi"]` |
-| Sort | `arrange(desc(fare))` | `rides.sort_values("fare_usd", ascending=False)` |
-| Summarise | `summarise(avg = mean(fare))` | `rides["fare_usd"].mean()` |
-| Group + summarise | `group_by(city) \|&gt; summarise(...)` | `rides.groupby("city")["fare_usd"].mean()` |
-| Distinct | `distinct(driver_id)` | `rides.drop_duplicates("driver_id")` |
+| Filter | `filter(df, fare &gt; 10)` | `df[df["fare"] &gt; 10]` |
+| Select | `select(df, city, fare)` | `df[["city", "fare"]]` |
+| Mutate | `mutate(df, rate = fare/dist)` | `df["rate"] = df["fare"]/df["dist"]` |
+| Sort | `arrange(df, desc(fare))` | `df.sort_values("fare", ascending=False)` |
+| Summarise | `summarise(df, avg = mean(fare))` | `df["fare"].mean()` |
+| Group + summarise | `group_by(df, city) |&gt; summarise(...)` | `df.groupby("city")["fare"].mean()` |
+| Distinct | `distinct(df, id)` | `df.drop_duplicates("id")` |
+]
 
 --
 
-The mental model: in pandas, **everything is a method on a DataFrame**, where dplyr is a pipeline of free functions.
+In dplyr, verbs are free functions in a pipe. In pandas, **everything is a method on the DataFrame** — you chain with dots instead of `|&gt;`.
 
 ---
 
