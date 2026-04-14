@@ -4,6 +4,9 @@ Module 1: Python for R Users -- Exercise
 Run with: python module-01/exercise.py
 """
 
+import pandas as pd
+import os
+
 # =============================================================================
 # Q1. Function: miles per hour
 # =============================================================================
@@ -36,9 +39,6 @@ print("Q2. SF fares:", sf_fares, "-> avg =", sf_avg)
 # =============================================================================
 # Q3. Read a CSV with pandas
 # =============================================================================
-
-import pandas as pd
-import os
 
 csv_path = "data/rides.csv"
 if os.path.exists(csv_path):
