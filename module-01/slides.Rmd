@@ -80,6 +80,10 @@ If you see `2` in the console, you're ready.
 
 The biggest mental shift: **indentation is part of the syntax**. There are no curly braces. The 4-space indent IS the block.
 
+--
+
+**What does "vectorized" mean?** In R, `c(1,2,3) + 10` gives `c(11,12,13)` — the operation applies to every element automatically. That's vectorization. In Python, `[1,2,3] + 10` is an error — plain lists don't do element-wise math. You need NumPy or pandas for that (covered in Module 2).
+
 ---
 
 # Variables and Types
