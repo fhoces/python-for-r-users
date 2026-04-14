@@ -89,13 +89,15 @@ If you see `2` in the console, you're ready.
 
 The biggest mental shift: **indentation is part of the syntax**. There are no curly braces. The 4-space indent IS the block.
 
+---
+
+# Two Things From That Table Worth Explaining
+
+**Why does `range(1,5)` include 1 but not 5?** Python uses "half-open" intervals: include the start, exclude the end. `range(n)` gives exactly `n` items, and consecutive ranges like `range(0,5)` + `range(5,10)` don't overlap. Same rule for list slicing: `x[1:3]` = items at index 1 and 2, not 3.
+
 --
 
-**Why does `range(1,5)` include 1 but not 5?** Python uses "half-open" intervals: include the start, exclude the end. This means `range(n)` gives exactly `n` items, and consecutive ranges like `range(0,5)` + `range(5,10)` don't overlap or leave gaps. The same rule applies to list slicing: `x[1:3]` gives items at index 1 and 2, not 3.
-
---
-
-**What does "vectorized" mean?** In R, `c(1,2,3) + 10` gives `c(11,12,13)` — the operation applies to every element automatically. That's vectorization. In Python, `[1,2,3] + 10` is an error — plain lists don't do element-wise math. You need NumPy or pandas for that (covered in Module 2).
+**What does "vectorized" mean?** In R, `c(1,2,3) + 10` gives `c(11,12,13)` — the operation applies to every element automatically. In Python, `[1,2,3] + 10` is an **error** — plain lists don't do element-wise math. You need NumPy or pandas for that (Module 2).
 
 ---
 
