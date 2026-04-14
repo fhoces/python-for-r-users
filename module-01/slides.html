@@ -228,20 +228,31 @@ while x &gt; 0:
 
 ```python
 def mph(distance, minutes):
-    """Miles per hour given distance (mi) and time (min)."""
+    """Miles per hour."""   # ← docstring (triple quotes)
     return distance / (minutes / 60)
 
-mph(5, 15)   # → 20.0
+print(mph(5, 15))   # → 20.0
+```
 
-# Default arguments
+The `"""..."""` is a **docstring** — Python's way of documenting a function (like roxygen `#'` in R). Optional, but good practice. Access it with `help(mph)`.
+
+--
+
+```python
+# Default arguments — same idea as R's f &lt;- function(x, y = 2)
 def greet(name, greeting="Hello"):
     return f"{greeting}, {name}!"
 
-greet("Maya")               # 'Hello, Maya!'
-greet("Maya", "Welcome")    # 'Welcome, Maya!'
+print(greet("Maya"))               # → Hello, Maya!
+print(greet("Maya", "Welcome"))    # → Welcome, Maya!
+```
 
-# Lambda (anonymous function, like R's \(x) ...)
+--
+
+```python
+# Lambda = anonymous function, like R's \(x) x^2
 square = lambda x: x ** 2
+print(square(4))                   # → 16
 ```
 
 ---
