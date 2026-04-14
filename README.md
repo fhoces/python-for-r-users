@@ -1,9 +1,9 @@
 # Python for an R User: Interview Prep
 
-A 5-module Python refresher targeted at the Uber **policy economist**
-interview. The goal: walk into a 30-minute Python coding portion of a
-tech-economics interview and write any of the canonical analytical
-queries without thinking about syntax.
+A 5-module Python refresher targeted at **applied economist / data science**
+interviews in tech. The goal: walk into a 30-minute Python coding portion
+and write any of the canonical analytical queries without thinking about
+syntax.
 
 > **Live slides:** *(set up after enabling GitHub Pages on this repo)*
 
@@ -15,8 +15,8 @@ the data work. If you've used R seriously, you already know what data
 analysis looks like — you just need the Python *words* for the same
 operations.
 
-The stack is **pandas + statsmodels**, because that's what Uber DS
-interviewers expect, and `statsmodels` integrates natively with pandas.
+The stack is **pandas + statsmodels**, because that's what most tech-company
+DS interviewers expect, and `statsmodels` integrates natively with pandas.
 polars is great for production but costs you on the interview.
 
 ## How to use this repo
