@@ -74,7 +74,6 @@ If you see `2` in the console, you're ready.
 | Vectorized? | Everything is | Lists no, NumPy/pandas yes |
 | Missing values | `NA` (typed) | `None` / `np.nan` (untyped) |
 | Booleans | `TRUE`/`FALSE` | `True`/`False` |
-| Function call | `f(x, y = 2)` | `f(x, y=2)` |
 
 --
 
