@@ -363,7 +363,7 @@ inverted = {v: k for k, v in original.items()}
 print(inverted)   # → {1: 'a', 2: 'b', 3: 'c'}
 ```
 
-`.items()` returns `(key, value)` pairs. The comprehension flips them.
+**Reading it:** `{v: k ...}` = "in the new dict, `v` is the key, `k` is the value" (the `:` separates key from value, same as `{"a": 1}`). `.items()` gives `(key, value)` pairs from the original; the comprehension flips them.
 
 ---
 
