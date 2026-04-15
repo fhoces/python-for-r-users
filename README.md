@@ -76,4 +76,4 @@ policy-economist interview prep:
 
 - [discrimination-econ-refresher](https://github.com/fhoces/discrimination-econ-refresher) — labor-econ literature on discrimination
 - [ml-discrimination-refresher](https://github.com/fhoces/ml-discrimination-refresher) — ML fundamentals + algorithmic fairness
-- [Intro to SQL](https://github.com/fhoces/sql-uber-prep) — SQL drilling on a synthetic rideshare schema
+- [Intro to SQL](https://github.com/fhoces/sql-industry-prep) — SQL drilling on a synthetic rideshare schema
