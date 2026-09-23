@@ -26,7 +26,7 @@ The review subject is `aiscen`, a real ~1,100-line Python package that
 reproduces an economics paper's model, at:
 
 ```
-/Users/fernando/Desktop/sandbox/repro_anthropic_report/aiscen/
+/Users/fernando/Desktop/sandbox/opa-ai-macro-econ-scenarios/aiscen/
 ```
 
 This is a **separate, live git repository** — read from it, never write to
@@ -149,8 +149,8 @@ the closest precedent — it's also a synthesis/capstone-style module).
 - Do not explain what the `aiscen` model itself computes (labor markets,
   AI scenarios, etc.) — that's a different repo's subject matter and would
   bury the Python lesson.
-- Do not add a dependency from this course to the `repro_anthropic_report`
+- Do not add a dependency from this course to the `opa-ai-macro-econ-scenarios`
   repo (no imports, no path references at runtime) — copy the illustrative
   snippets in as static text/code blocks.
-- Do not touch `repro_anthropic_report` itself in any way while building
+- Do not touch `opa-ai-macro-econ-scenarios` itself in any way while building
   this module.
