@@ -1,6 +1,6 @@
 # Python for an R User: Interview Prep
 
-A 5-module Python refresher targeted at **applied economist / data science**
+A 6-module Python refresher targeted at **applied economist / data science**
 interviews in tech. The goal: walk into a 30-minute Python coding portion
 and write any of the canonical analytical queries without thinking about
 syntax.
@@ -46,6 +46,7 @@ python module-01/exercise.py
 | **3** | [Joins, merges, group-by recipes](module-03/) | merge, anti-join, transform, top-N per group | merge with drivers, most-frequent driver per rider |
 | **4** | [Regression and A/B tests with statsmodels](module-04/) | OLS, robust SEs, FE, logit, A/B inference, DiD | A/B treatment effect, fixed-effects regression, DiD |
 | **5** | [End-to-end interview scenario](module-05/) | The full pipeline + drill questions | A/B analysis, multi-CSV processing, disparate-impact audit |
+| **6** | [Reading and Reviewing Someone Else's Python](module-06/) | Reading an unfamiliar codebase: imports → entry point → leaves first | "Walk me through this code," find the bug, review a PR |
 
 ## Dependencies
 

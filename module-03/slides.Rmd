@@ -24,8 +24,9 @@ output:
 <tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
 <tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
 <tr><td><b>3</b></td><td><b>Joins, merges, group-by recipes</b> <i>(you are here)</i></td><td>← current</td></tr>
-<tr><td>4</td><td>Regression and A/B tests with statsmodels</td><td>upcoming</td></tr>
-<tr><td>5</td><td>End-to-end interview scenario</td><td>upcoming</td></tr>
+<tr><td>4</td><td><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></td><td>✓ done</td></tr>
+<tr><td>5</td><td><a href="../module-05/slides.html">End-to-end interview scenario</a></td><td>✓ done</td></tr>
+<tr><td>6</td><td><a href="../module-06/slides.html">Reading and Reviewing Someone Else's Python</a></td><td>✓ done</td></tr>
 </table>
 
 ---

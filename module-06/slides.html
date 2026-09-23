@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Module 6: Reading and Reviewing Someone Else’s Python</title>
+    <meta charset="utf-8" />
+    <script src="slides_files/header-attrs-2.29/header-attrs.js"></script>
+    <link href="slides_files/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="slides_files/remark-css-0.0.1/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Module 6: Reading and Reviewing Someone Else’s Python
+]
+.subtitle[
+## A real ~1,100-line package, read leaves-first
+]
+
+---
+
+
+&lt;style type="text/css"&gt;
+.remark-code, .remark-inline-code { font-size: 80%; }
+.remark-slide-content { padding: 1em 2em; }
+.small { font-size: 80%; }
+&lt;/style&gt;
+
+# Course Map
+
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;#&lt;/th&gt;&lt;th&gt;Module&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;&lt;a href="../module-01/slides.html"&gt;Python for R Users&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;&lt;a href="../module-02/slides.html"&gt;pandas basics&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;&lt;a href="../module-03/slides.html"&gt;Joins, merges, group-by recipes&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;&lt;a href="../module-04/slides.html"&gt;Regression and A/B tests with statsmodels&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;&lt;a href="../module-05/slides.html"&gt;End-to-end interview scenario&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;b&gt;6&lt;/b&gt;&lt;/td&gt;&lt;td&gt;&lt;b&gt;Reading and Reviewing Someone Else's Python&lt;/b&gt; &lt;i&gt;(you are here)&lt;/i&gt;&lt;/td&gt;&lt;td&gt;← current&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+---
+
+# Why This Module Breaks the Pattern
+
+Every module so far used the same synthetic ride-sharing data.
+
+--
+
+This one uses a real ~1,100-line Python package instead — on purpose.
+
+--
+
+The skill isn't "do something with a dataset." It's **reading and
+reviewing a codebase you didn't write**: "walk me through this code" in an
+interview, reviewing a PR, onboarding onto a new repo on the job.
+
+--
+
+You don't need to know what the package computes. It reproduces an
+economics paper's model — labor markets, AI scenarios — and none of that
+matters here. The lesson is entirely about **Python structure**.
+
+---
+
+# The Strategy: Reading Code You Didn't Write
+
+Before opening any file, three moves, in order:
+
+**1. Skim imports first, to find the dependency graph.**
+A file that imports nothing from the package is a leaf.
+
+--
+
+**2. Read leaves before the functions that call them.**
+Understand a solver in isolation before you meet its three callers.
+
+--
+
+**3. Find the one or two "verb" functions — the actual entry point.**
+Everything else exists to support that one call.
+
+--
+
+Applied here: `numerics.py` imports nothing from the package — the leaf.
+`report.py`, read last, imports from `simulate.py` and `params.py` — it
+consumes everything before it. That import graph *is* the read order.
+
+---
+
+# The Eight Files, in Dependency Order
+
+.small[
+| Order | File | Lines | What it is |
+|---|---|---|---|
+| 1 | `numerics.py` | 39 | Two solver primitives. No package imports — the leaf. |
+| 2 | `params.py` | 170 | The parameter layer: frozen dataclasses + a named-instance dict. |
+| 3 | `paths.py` | 89 | Time paths: pure math functions + a `Paths` dataclass. |
+| 4 | `steady.py` | 92 | Solves the model's steady state via `numerics.bisect`. |
+| 5 | `statics.py` | 247 | The largest file: several dataclasses, many small (some private) functions. |
+| 6 | `simulate.py` | 225 | `run()` — the monthly solve loop everything else feeds into. |
+| 7 | `slop.py` | 112 | A what-if extension, forking scenarios without mutating them. |
+| 8 | `report.py` | 144 | Turns a `Result` into publication-style tables. |
+]
+
+--
+
+Not alphabetical, not file-listing order — dependency order, leaves first.
+
+---
+
+# 1. `numerics.py` — Solver Primitives
+
+```python
+def bisect(f, lo: float, hi: float, tol: float = 1e-14, maxiter: int = 200) -&gt; float:
+    """Bisection on a sign change in [lo, hi]."""
+    ...
+```
+
+No classes. No imports from the rest of the package. The leaf.
+
+--
+
+**A function passed as a plain argument.** `bisect(f, lo, hi)` takes
+another function as its first argument — zero special syntax.
+
+--
+
+**R equivalent:** `uniroot(f, ...)`. R users sometimes expect "passing a
+function to a function" to need functional-programming ceremony (like
+`purrr`'s `~` shorthand). In both languages functions are just values you
+hand around — this is Python's plain, unadorned version of that.
+
+---
+
+# 2. `params.py` — the Parameter Layer
+
+```python
+@dataclass(frozen=True)
+class Fixed:
+    sigma: float = 0.5
+    s_L0: float = 0.60
+    ...
+```
+
+--
+
+**`@dataclass(frozen=True)`: an immutable record type.** `fixed.sigma = 0.6`
+on a frozen instance raises `FrozenInstanceError`.
+
+--
+
+**R equivalent:** the closest thing to R's copy-on-modify — except
+*enforced*. A plain R `list()` never stops you from mutating a copy of
+itself; nothing in R says "this object refuses to change." `frozen=True`
+does exactly that.
+
+---
+
+# `params.py` — a Dict of Named Instances
+
+```python
+MODEST = Scenario(name="modest", ...)
+SUBSTANTIAL = Scenario(name="substantial", ...)
+EXTREME = Scenario(name="extreme", ...)
+
+SCENARIOS = {s.name: s for s in (MODEST, SUBSTANTIAL, EXTREME)}
+```
+
+--
+
+A `dict` of named instances, built with a dict comprehension (Module 1).
+
+--
+
+**R equivalent:** a named `list()` of parameter objects.
+`SCENARIOS[["modest"]]` in R is `SCENARIOS["modest"]` here.
+
+---
+
+# 3. `paths.py` — Time Paths
+
+```python
+def logistic_slope(anchor: float, target: float, ceiling: float, years: float) -&gt; float:
+    ...
+```
+
+--
+
+**Type hints as inline, unenforced documentation.** `-&gt; float` and
+`anchor: float` tell a reader (and an IDE) what's expected — but Python
+checks none of it at runtime. Call it with strings and it fails *inside*
+the function body, not at the call site.
+
+--
+
+**R equivalent:** none, outside add-on packages like `checkmate`. Base R
+functions carry no type signature at all, enforced or otherwise.
+
+---
+
+# 4. `steady.py` — the Steady State
+
+```python
+from .numerics import bisect
+```
+
+--
+
+**The relative import.** The leading dot means "the sibling module
+`numerics.py` in this same package," not an independent top-level package
+of that name.
+
+--
+
+```python
+def effective_search(U_C: float, U_N: float, mu: float) -&gt; tuple:
+    """Equation (33): S_C = U_C + mu U_N, S_N = mu U_C + U_N."""
+    return U_C + mu * U_N, mu * U_C + U_N
+```
+
+**Returning a `tuple` for multiple values** — Python's version of R's
+`list(a = ..., b = ...)`. The caller unpacks positionally: `S_C, S_N = effective_search(...)`.
+
+---
+
+# 5. `statics.py` — the Largest File
+
+Several dataclasses (`Frictionless`, `Actual`, `FirstOrder`) and a long
+run of small functions — several prefixed with an underscore.
+
+```python
+def _price_index_resid(f, LamC, B, wtC, wtN, dlnr) -&gt; float:
+    """First row of (39): the CES price index equals one (the numeraire)."""
+    ...
+```
+
+--
+
+**The leading underscore: "not public," by convention only.** Nothing
+stops `from statics import _price_index_resid` elsewhere — it's a social
+contract, not a wall.
+
+--
+
+**R equivalent:** R's `:::` operator and a package's NAMESPACE file *do*
+enforce this — a non-exported R function genuinely can't be reached with
+`::`. Python's underscore gives you the signal without the enforcement.
+
+---
+
+# 6. `simulate.py` — the Entry Point
+
+```python
+@dataclass
+class Result:
+    fixed: Fixed
+    scen: Scenario
+    paths: Paths
+    ss: "SteadyState"
+*   months: list = field(default_factory=list)
+```
+
+--
+
+**The mutable-default-argument trap.** Writing `months: list = []` directly
+would create ONE list at class-*definition* time, shared across every
+`Result` ever built — appending in one instance would leak into all of
+them. `default_factory=list` calls `list()` fresh per instance instead.
+
+--
+
+**R has no equivalent footgun here.** R's default arguments are
+re-evaluated lazily on *each call*, so `f &lt;- function(x, y = list())`
+never shares one `y` across calls the way a naive Python default would.
+
+--
+
+`run()` is the file's — and the package's — verb function: everything else
+exists to be called from inside this one loop.
+
+---
+
+# 7. `slop.py` — a What-If Extension
+
+```python
+def scale_gain(scen: Scenario, a_2030: float, name: str = None) -&gt; Scenario:
+    k = a_2030 / gain_2030(scen)
+*   return replace(scen, name=name or f"a={a_2030:.2f}",
+*                  a_anchor=scen.a_anchor * k, g_a=scen.g_a * k)
+```
+
+--
+
+**`dataclasses.replace()` — the best "aha" moment for an R user.**
+`replace(scen, a_anchor=..., g_a=...)` returns a *new* `Scenario` with just
+those fields changed, everything else copied.
+
+--
+
+**R equivalent:** exactly the mental model of `modifyList()`, or
+`scen2 &lt;- scen; scen2$a_anchor &lt;- ...`. The difference: because `Scenario`
+is frozen, you're not *allowed* to copy-then-mutate — `replace()` is the
+only door in, making the copy-on-modify idea explicit instead of implicit.
+
+---
+
+# 8. `report.py` — the Consumption Layer
+
+```python
+PCT = 100.0
+
+def pct(dln: float) -&gt; float:
+    """Percent above the no-AI path from a log gap."""
+    return (math.exp(dln) - 1.0) * PCT
+```
+
+```python
+return {
+    "GDP, pct above no-AI": pct(m.dlnY),
+    "Average wage, pct above no-AI": pct(m.dlnw_avg),
+    ...
+}
+```
+
+--
+
+**Building and returning a `dict` as a table row/column.** No special
+table type — a plain dict mapping row labels to values, built by hand.
+
+--
+
+**R equivalent:** building a `tibble::tibble(...)` row (or a named vector)
+one field at a time — no framework, just a literal you construct yourself.
+
+---
+class: inverse, center, middle
+
+# Closing Exercise
+
+## Transfer the checklist to code you haven't seen explained
+
+---
+
+# The Exercise
+
+Four more snippets from these same eight files — things **not** walked
+through on the last eight slides. For each: name the idiom, then name the
+R equivalent, before checking the answer.
+
+--
+
+One of the four has a twist: the honest answer is **"R does this exactly
+the same way."** Not every idiom here is a translation — recognizing when
+Python and R already agree is also part of reading code quickly.
+
+--
+
+Run it: `python module-06/exercise.py`
+
+---
+class: inverse
+
+# The Course in One Slide
+
+&lt;br&gt;
+
+### 1. Module 1: Python is R syntax with zero-indexing, explicit imports, and load-bearing whitespace.
+
+--
+
+&lt;br&gt;
+
+### 2. Modules 2-3: pandas is dplyr with method chains. The cheat sheet covers 95% of what you need.
+
+--
+
+&lt;br&gt;
+
+### 3. Module 4: statsmodels gives you R-style formulas and the OLS-as-A/B-test pattern.
+
+--
+
+&lt;br&gt;
+
+### 4. Modules 5-6: in the interview, talk while you type, restate the answer in plain English — and when handed code you didn't write, read leaves first and find the entry point before judging anything.
+
+---
+
+# Course Map
+
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;#&lt;/th&gt;&lt;th&gt;Module&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;&lt;a href="../module-01/slides.html"&gt;Python for R Users&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;&lt;a href="../module-02/slides.html"&gt;pandas basics&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;&lt;a href="../module-03/slides.html"&gt;Joins, merges, group-by recipes&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;&lt;a href="../module-04/slides.html"&gt;Regression and A/B tests with statsmodels&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;&lt;a href="../module-05/slides.html"&gt;End-to-end interview scenario&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;6&lt;/td&gt;&lt;td&gt;Reading and Reviewing Someone Else's Python &lt;i&gt;(just finished)&lt;/i&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+**You're done.** Next time you're handed an unfamiliar file in an
+interview: imports first, leaves first, find the verb function.
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

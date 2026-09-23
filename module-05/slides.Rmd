@@ -26,6 +26,7 @@ output:
 <tr><td>3</td><td><a href="../module-03/slides.html">Joins, merges, group-by recipes</a></td><td>✓ done</td></tr>
 <tr><td>4</td><td><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></td><td>✓ done</td></tr>
 <tr><td><b>5</b></td><td><b>End-to-end interview scenario</b> <i>(you are here)</i></td><td>← current</td></tr>
+<tr><td>6</td><td><a href="../module-06/slides.html">Reading and Reviewing Someone Else's Python</a></td><td>✓ done</td></tr>
 </table>
 
 ---

@@ -1,0 +1,393 @@
+---
+title: "Module 6: Reading and Reviewing Someone Else's Python"
+subtitle: "A real ~1,100-line package, read leaves-first"
+output:
+  xaringan::moon_reader:
+    css: [default, default-fonts]
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+
+```{css, echo=FALSE}
+.remark-code, .remark-inline-code { font-size: 80%; }
+.remark-slide-content { padding: 1em 2em; }
+.small { font-size: 80%; }
+```
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
+<tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
+<tr><td>3</td><td><a href="../module-03/slides.html">Joins, merges, group-by recipes</a></td><td>✓ done</td></tr>
+<tr><td>4</td><td><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></td><td>✓ done</td></tr>
+<tr><td>5</td><td><a href="../module-05/slides.html">End-to-end interview scenario</a></td><td>✓ done</td></tr>
+<tr><td><b>6</b></td><td><b>Reading and Reviewing Someone Else's Python</b> <i>(you are here)</i></td><td>← current</td></tr>
+</table>
+
+---
+
+# Why This Module Breaks the Pattern
+
+Every module so far used the same synthetic ride-sharing data.
+
+--
+
+This one uses a real ~1,100-line Python package instead — on purpose.
+
+--
+
+The skill isn't "do something with a dataset." It's **reading and
+reviewing a codebase you didn't write**: "walk me through this code" in an
+interview, reviewing a PR, onboarding onto a new repo on the job.
+
+--
+
+You don't need to know what the package computes. It reproduces an
+economics paper's model — labor markets, AI scenarios — and none of that
+matters here. The lesson is entirely about **Python structure**.
+
+---
+
+# The Strategy: Reading Code You Didn't Write
+
+Before opening any file, three moves, in order:
+
+**1. Skim imports first, to find the dependency graph.**
+A file that imports nothing from the package is a leaf.
+
+--
+
+**2. Read leaves before the functions that call them.**
+Understand a solver in isolation before you meet its three callers.
+
+--
+
+**3. Find the one or two "verb" functions — the actual entry point.**
+Everything else exists to support that one call.
+
+--
+
+Applied here: `numerics.py` imports nothing from the package — the leaf.
+`report.py`, read last, imports from `simulate.py` and `params.py` — it
+consumes everything before it. That import graph *is* the read order.
+
+---
+
+# The Eight Files, in Dependency Order
+
+.small[
+| Order | File | Lines | What it is |
+|---|---|---|---|
+| 1 | `numerics.py` | 39 | Two solver primitives. No package imports — the leaf. |
+| 2 | `params.py` | 170 | The parameter layer: frozen dataclasses + a named-instance dict. |
+| 3 | `paths.py` | 89 | Time paths: pure math functions + a `Paths` dataclass. |
+| 4 | `steady.py` | 92 | Solves the model's steady state via `numerics.bisect`. |
+| 5 | `statics.py` | 247 | The largest file: several dataclasses, many small (some private) functions. |
+| 6 | `simulate.py` | 225 | `run()` — the monthly solve loop everything else feeds into. |
+| 7 | `slop.py` | 112 | A what-if extension, forking scenarios without mutating them. |
+| 8 | `report.py` | 144 | Turns a `Result` into publication-style tables. |
+]
+
+--
+
+Not alphabetical, not file-listing order — dependency order, leaves first.
+
+---
+
+# 1. `numerics.py` — Solver Primitives
+
+```python
+def bisect(f, lo: float, hi: float, tol: float = 1e-14, maxiter: int = 200) -> float:
+    """Bisection on a sign change in [lo, hi]."""
+    ...
+```
+
+No classes. No imports from the rest of the package. The leaf.
+
+--
+
+**A function passed as a plain argument.** `bisect(f, lo, hi)` takes
+another function as its first argument — zero special syntax.
+
+--
+
+**R equivalent:** `uniroot(f, ...)`. R users sometimes expect "passing a
+function to a function" to need functional-programming ceremony (like
+`purrr`'s `~` shorthand). In both languages functions are just values you
+hand around — this is Python's plain, unadorned version of that.
+
+---
+
+# 2. `params.py` — the Parameter Layer
+
+```python
+@dataclass(frozen=True)
+class Fixed:
+    sigma: float = 0.5
+    s_L0: float = 0.60
+    ...
+```
+
+--
+
+**`@dataclass(frozen=True)`: an immutable record type.** `fixed.sigma = 0.6`
+on a frozen instance raises `FrozenInstanceError`.
+
+--
+
+**R equivalent:** the closest thing to R's copy-on-modify — except
+*enforced*. A plain R `list()` never stops you from mutating a copy of
+itself; nothing in R says "this object refuses to change." `frozen=True`
+does exactly that.
+
+---
+
+# `params.py` — a Dict of Named Instances
+
+```python
+MODEST = Scenario(name="modest", ...)
+SUBSTANTIAL = Scenario(name="substantial", ...)
+EXTREME = Scenario(name="extreme", ...)
+
+SCENARIOS = {s.name: s for s in (MODEST, SUBSTANTIAL, EXTREME)}
+```
+
+--
+
+A `dict` of named instances, built with a dict comprehension (Module 1).
+
+--
+
+**R equivalent:** a named `list()` of parameter objects.
+`SCENARIOS[["modest"]]` in R is `SCENARIOS["modest"]` here.
+
+---
+
+# 3. `paths.py` — Time Paths
+
+```python
+def logistic_slope(anchor: float, target: float, ceiling: float, years: float) -> float:
+    ...
+```
+
+--
+
+**Type hints as inline, unenforced documentation.** `-> float` and
+`anchor: float` tell a reader (and an IDE) what's expected — but Python
+checks none of it at runtime. Call it with strings and it fails *inside*
+the function body, not at the call site.
+
+--
+
+**R equivalent:** none, outside add-on packages like `checkmate`. Base R
+functions carry no type signature at all, enforced or otherwise.
+
+---
+
+# 4. `steady.py` — the Steady State
+
+```python
+from .numerics import bisect
+```
+
+--
+
+**The relative import.** The leading dot means "the sibling module
+`numerics.py` in this same package," not an independent top-level package
+of that name.
+
+--
+
+```python
+def effective_search(U_C: float, U_N: float, mu: float) -> tuple:
+    """Equation (33): S_C = U_C + mu U_N, S_N = mu U_C + U_N."""
+    return U_C + mu * U_N, mu * U_C + U_N
+```
+
+**Returning a `tuple` for multiple values** — Python's version of R's
+`list(a = ..., b = ...)`. The caller unpacks positionally: `S_C, S_N = effective_search(...)`.
+
+---
+
+# 5. `statics.py` — the Largest File
+
+Several dataclasses (`Frictionless`, `Actual`, `FirstOrder`) and a long
+run of small functions — several prefixed with an underscore.
+
+```python
+def _price_index_resid(f, LamC, B, wtC, wtN, dlnr) -> float:
+    """First row of (39): the CES price index equals one (the numeraire)."""
+    ...
+```
+
+--
+
+**The leading underscore: "not public," by convention only.** Nothing
+stops `from statics import _price_index_resid` elsewhere — it's a social
+contract, not a wall.
+
+--
+
+**R equivalent:** R's `:::` operator and a package's NAMESPACE file *do*
+enforce this — a non-exported R function genuinely can't be reached with
+`::`. Python's underscore gives you the signal without the enforcement.
+
+---
+
+# 6. `simulate.py` — the Entry Point
+
+```python
+@dataclass
+class Result:
+    fixed: Fixed
+    scen: Scenario
+    paths: Paths
+    ss: "SteadyState"
+*   months: list = field(default_factory=list)
+```
+
+--
+
+**The mutable-default-argument trap.** Writing `months: list = []` directly
+would create ONE list at class-*definition* time, shared across every
+`Result` ever built — appending in one instance would leak into all of
+them. `default_factory=list` calls `list()` fresh per instance instead.
+
+--
+
+**R has no equivalent footgun here.** R's default arguments are
+re-evaluated lazily on *each call*, so `f <- function(x, y = list())`
+never shares one `y` across calls the way a naive Python default would.
+
+--
+
+`run()` is the file's — and the package's — verb function: everything else
+exists to be called from inside this one loop.
+
+---
+
+# 7. `slop.py` — a What-If Extension
+
+```python
+def scale_gain(scen: Scenario, a_2030: float, name: str = None) -> Scenario:
+    k = a_2030 / gain_2030(scen)
+*   return replace(scen, name=name or f"a={a_2030:.2f}",
+*                  a_anchor=scen.a_anchor * k, g_a=scen.g_a * k)
+```
+
+--
+
+**`dataclasses.replace()` — the best "aha" moment for an R user.**
+`replace(scen, a_anchor=..., g_a=...)` returns a *new* `Scenario` with just
+those fields changed, everything else copied.
+
+--
+
+**R equivalent:** exactly the mental model of `modifyList()`, or
+`scen2 <- scen; scen2$a_anchor <- ...`. The difference: because `Scenario`
+is frozen, you're not *allowed* to copy-then-mutate — `replace()` is the
+only door in, making the copy-on-modify idea explicit instead of implicit.
+
+---
+
+# 8. `report.py` — the Consumption Layer
+
+```python
+PCT = 100.0
+
+def pct(dln: float) -> float:
+    """Percent above the no-AI path from a log gap."""
+    return (math.exp(dln) - 1.0) * PCT
+```
+
+```python
+return {
+    "GDP, pct above no-AI": pct(m.dlnY),
+    "Average wage, pct above no-AI": pct(m.dlnw_avg),
+    ...
+}
+```
+
+--
+
+**Building and returning a `dict` as a table row/column.** No special
+table type — a plain dict mapping row labels to values, built by hand.
+
+--
+
+**R equivalent:** building a `tibble::tibble(...)` row (or a named vector)
+one field at a time — no framework, just a literal you construct yourself.
+
+---
+class: inverse, center, middle
+
+# Closing Exercise
+
+## Transfer the checklist to code you haven't seen explained
+
+---
+
+# The Exercise
+
+Four more snippets from these same eight files — things **not** walked
+through on the last eight slides. For each: name the idiom, then name the
+R equivalent, before checking the answer.
+
+--
+
+One of the four has a twist: the honest answer is **"R does this exactly
+the same way."** Not every idiom here is a translation — recognizing when
+Python and R already agree is also part of reading code quickly.
+
+--
+
+Run it: `python module-06/exercise.py`
+
+---
+class: inverse
+
+# The Course in One Slide
+
+<br>
+
+### 1. Module 1: Python is R syntax with zero-indexing, explicit imports, and load-bearing whitespace.
+
+--
+
+<br>
+
+### 2. Modules 2-3: pandas is dplyr with method chains. The cheat sheet covers 95% of what you need.
+
+--
+
+<br>
+
+### 3. Module 4: statsmodels gives you R-style formulas and the OLS-as-A/B-test pattern.
+
+--
+
+<br>
+
+### 4. Modules 5-6: in the interview, talk while you type, restate the answer in plain English — and when handed code you didn't write, read leaves first and find the entry point before judging anything.
+
+---
+
+# Course Map
+
+<table>
+<tr><th>#</th><th>Module</th><th>Status</th></tr>
+<tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
+<tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
+<tr><td>3</td><td><a href="../module-03/slides.html">Joins, merges, group-by recipes</a></td><td>✓ done</td></tr>
+<tr><td>4</td><td><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></td><td>✓ done</td></tr>
+<tr><td>5</td><td><a href="../module-05/slides.html">End-to-end interview scenario</a></td><td>✓ done</td></tr>
+<tr><td>6</td><td>Reading and Reviewing Someone Else's Python <i>(just finished)</i></td><td>✓ done</td></tr>
+</table>
+
+**You're done.** Next time you're handed an unfamiliar file in an
+interview: imports first, leaves first, find the verb function.

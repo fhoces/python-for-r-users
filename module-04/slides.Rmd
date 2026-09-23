@@ -25,7 +25,8 @@ output:
 <tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
 <tr><td>3</td><td><a href="../module-03/slides.html">Joins, merges, group-by recipes</a></td><td>✓ done</td></tr>
 <tr><td><b>4</b></td><td><b>Regression and A/B tests with statsmodels</b> <i>(you are here)</i></td><td>← current</td></tr>
-<tr><td>5</td><td>End-to-end interview scenario</td><td>upcoming</td></tr>
+<tr><td>5</td><td><a href="../module-05/slides.html">End-to-end interview scenario</a></td><td>✓ done</td></tr>
+<tr><td>6</td><td><a href="../module-06/slides.html">Reading and Reviewing Someone Else's Python</a></td><td>✓ done</td></tr>
 </table>
 
 ---
