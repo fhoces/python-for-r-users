@@ -37,7 +37,7 @@ output:
 **Step 1.** Build the CSV data files (once, in your terminal):
 
 ```bash
-cd ~/Desktop/sandbox/python-for-r-users
+cd ~/Desktop/sandbox/courses/python-for-r-users
 Rscript data/build_csvs.R
 ```
 
