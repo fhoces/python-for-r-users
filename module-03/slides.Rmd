@@ -309,6 +309,8 @@ class: inverse
 <tr><td>1</td><td><a href="../module-01/slides.html">Python for R Users</a></td><td>✓ done</td></tr>
 <tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
 <tr><td>3</td><td>Joins, merges, group-by recipes <i>(just finished)</i></td><td>✓ done</td></tr>
-<tr><td><b>4</b></td><td><b>Regression and A/B tests with statsmodels</b></td><td>next</td></tr>
-<tr><td>5</td><td>End-to-end interview scenario</td><td>upcoming</td></tr>
+<tr><td><b>4</b></td><td><b><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></b></td><td>next</td></tr>
+<tr><td>5</td><td><a href="../module-05/slides.html">End-to-end interview scenario</a></td><td>✓ done</td></tr>
+<tr><td>6</td><td><a href="../module-06/slides.html">Reading and Reviewing Someone Else's Python</a></td><td>✓ done</td></tr>
+<tr><td>7</td><td><a href="../module-07/slides.html">Loading, Running SQL and Checking a Reproduction</a></td><td>✓ done</td></tr>
 </table>

@@ -346,5 +346,7 @@ class: inverse
 <tr><td>2</td><td><a href="../module-02/slides.html">pandas basics</a></td><td>✓ done</td></tr>
 <tr><td>3</td><td><a href="../module-03/slides.html">Joins, merges, group-by recipes</a></td><td>✓ done</td></tr>
 <tr><td>4</td><td>Regression and A/B tests with statsmodels <i>(just finished)</i></td><td>✓ done</td></tr>
-<tr><td><b>5</b></td><td><b>End-to-end interview scenario</b></td><td>next</td></tr>
+<tr><td><b>5</b></td><td><b><a href="../module-05/slides.html">End-to-end interview scenario</a></b></td><td>next</td></tr>
+<tr><td>6</td><td><a href="../module-06/slides.html">Reading and Reviewing Someone Else's Python</a></td><td>✓ done</td></tr>
+<tr><td>7</td><td><a href="../module-07/slides.html">Loading, Running SQL and Checking a Reproduction</a></td><td>✓ done</td></tr>
 </table>

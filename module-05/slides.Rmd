@@ -282,6 +282,8 @@ class: inverse
 <tr><td>3</td><td><a href="../module-03/slides.html">Joins, merges, group-by recipes</a></td><td>✓ done</td></tr>
 <tr><td>4</td><td><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></td><td>✓ done</td></tr>
 <tr><td>5</td><td>End-to-end interview scenario <i>(just finished)</i></td><td>✓ done</td></tr>
+<tr><td><b>6</b></td><td><b><a href="../module-06/slides.html">Reading and Reviewing Someone Else's Python</a></b></td><td>next</td></tr>
+<tr><td>7</td><td><a href="../module-07/slides.html">Loading, Running SQL and Checking a Reproduction</a></td><td>✓ done</td></tr>
 </table>
 
-**You're done.** Now drill the questions until you can answer each one in 5 minutes flat.
+**Next: module 6**, reading and reviewing someone else's Python. First, drill the questions until you can answer each one in 5 minutes flat.
