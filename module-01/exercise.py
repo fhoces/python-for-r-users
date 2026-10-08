@@ -65,6 +65,10 @@ else:
 # =============================================================================
 
 original = {"a": 1, "b": 2, "c": 3}
+# Dict comprehension, read right to left: .items() yields (key, value) pairs,
+# "for k, v in" unpacks each pair, and "v: k" writes it back swapped, so the
+# old value becomes the new key. R analog: setNames(names(x), x).
+# If two keys share a value, the later one wins (dict keys are unique).
 inverted = {v: k for k, v in original.items()}
 print("\nQ4. original:", original)
 print("Q4. inverted:", inverted)
