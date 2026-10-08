@@ -5,7 +5,7 @@ interviews in tech. The goal is to walk into a 30-minute Python coding
 portion and be able to write any of the canonical analytical queries
 without thinking about syntax.
 
-**Time budget: ~5 hours** (module 7 adds about 1.5 hours, including the 27-minute audio lesson)
+**Time budget: ~5.5 hours** (module 7 adds about 2 hours, including the 36-minute audio lesson)
 
 | # | Module | Concepts | Sample interview questions |
 |---|--------|----------|-----|
@@ -15,7 +15,7 @@ without thinking about syntax.
 | 4 | Regression and A/B tests with statsmodels | OLS, robust SEs, fixed effects, logit, A/B inference, DiD | OLS with city FE, A/B treatment effect with CI, DiD |
 | 5 | End-to-end interview scenario | The full pipeline, three scenarios + drill questions | A/B test analysis, multi-CSV processing, disparate-impact audit |
 | 6 | Reading and Reviewing Someone Else's Python | Reading an unfamiliar codebase: imports → dependency graph → entry point, dataclasses, `frozen`/`replace`, relative imports, underscore convention | "Walk me through this code," find the bug, review a PR |
-| 7 | Loading, Running SQL and Checking a Reproduction | Chunked `read_csv` with `dtype=str, keep_default_na=False` and explicit `""` to `None`; `executemany` with `?` placeholders; indexes after the load; `executescript` vs `execute`; `argparse`; deterministic CSV exports (sort keys, `repr` floats); `merge(indicator=True)`; tolerance vs exact equality; exit codes; the R twin (`DBI::dbExecute`, `read_csv_chunked`, `all.equal`) | Write the four drill functions until `check.py` passes all four |
+| 7 | Loading, Running SQL and Checking a Reproduction | Chunked `read_csv` with `dtype=str, keep_default_na=False` and explicit `""` to `None`; `executemany` with `?` placeholders; indexes after the load; `executescript` vs `execute`; `argparse`; deterministic CSV exports (sort keys, `repr` floats); `merge(indicator=True)`; tolerance vs exact equality; exit codes; the R twin (`DBI::dbExecute`, `read_csv_chunked`, `all.equal`); part 2: a Python twin of an R pipeline, function by function (openpyxl `data_only` reads, a positional frame indexed like the sheet, R's `as.numeric()` on a cell, `isin` / `duplicated(subset=...)` / `size()` / `sum()` as twins of `%in%` / `duplicated()` / `n()` / `sum(na.rm = TRUE)`, the parity test at `1e-9 * max(1, |r|)`) | Write the eight drill functions until `check.py` passes all eight |
 
 ## Two design choices
 

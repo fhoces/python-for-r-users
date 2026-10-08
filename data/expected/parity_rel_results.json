@@ -1,0 +1,41 @@
+{
+ "py_good": {
+  "data_sec_agg.csv": {
+   "ok": true,
+   "n_values": 203,
+   "max_rel_diff": 1.9540942649823826e-15
+  },
+  "ftb_totals.csv": {
+   "ok": true,
+   "n_values": 21,
+   "max_rel_diff": 2.270134868804446e-16
+  },
+  "tax_rates.csv": {
+   "ok": true,
+   "n_values": 7,
+   "max_rel_diff": 3.000000000000088e-16
+  }
+ },
+ "py_bad": {
+  "data_sec_agg.csv": {
+   "ok": false,
+   "n_values": 203,
+   "max_rel_diff": 1.0000000004344866e-07
+  },
+  "ftb_totals.csv": {
+   "ok": false,
+   "n_values": 0,
+   "max_rel_diff": null
+  },
+  "notes.csv": {
+   "ok": false,
+   "n_values": 0,
+   "max_rel_diff": null
+  },
+  "tax_rates.csv": {
+   "ok": false,
+   "n_values": 7,
+   "max_rel_diff": 0.0
+  }
+ }
+}

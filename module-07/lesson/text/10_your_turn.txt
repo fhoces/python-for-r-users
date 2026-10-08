@@ -1,0 +1,23 @@
+Your turn.
+
+Here is how to practice. All commands run from the root of the course repository.
+
+First, build the data once: python data slash build r t b sample dot p y. It writes the synthetic CSVs and a small workbook into the data folder, and the reference results into data slash expected.
+
+Second, open module seven slash exercise dot p y. It has eight drills, in the order of this lesson: four for part one and four for part two. Each function has its signature and a docstring that says exactly what it must do, and a body that just raises not implemented error. Delete that line and write the body. Under each function there is a commented answer block, so try each one cold first.
+
+Drill one is the loader. Read the CSV in chunks, as text, with nothing turned into N a N. Strip spaces, turn empty fields into None, convert the money columns to floats, insert each chunk with execute many and question marks, and create the indexes at the end. Return the number of rows.
+
+Drill two is the runner. Run the SQL file with execute script. Then for each table, select it with the order by clause you are given, and write it with the C S V writer: a header, repr for floats, empty for null, single newline line endings. The grader compares your files with the expected ones byte by byte, and it also asks for one table sorted newest first, to make sure the order really comes from your order by.
+
+Drill three is the comparison. Merge your table with a pretend authors' sheet, on the date, outer, with an indicator. Count the rows on each side, count the cells that differ by more than the tolerance, and find the largest difference. The pretend sheet has a vintage gap built in: it stops five dates early, one cell differs by one in a billion, and one cell differs by a quarter. The right answer reports five extra dates, one cell off, and fails, because of the quarter.
+
+Drill four is the parity check. Compare two folders of exports, table by table: numbers as numbers, everything else as text. One folder is written R style, with seventeen digits, and must pass. The other has one value moved by one in a million, and must fail.
+
+Drills five to eight are part two. Drill five reads a sheet of the workbook by position, with columns named by letter, rows numbered from one, and dates turned into serial numbers. Drill six turns a cell into a number the way R's as numeric does, so an underscore, a label, or a true cell gives not a number. Drill seven is the pandas twin of a short dplyr pipeline: drop the excluded id, drop each re-pasted row once, then count and sum by year. It is graded against the real SQL file at one in a billion. Drill eight compares an R folder with two Python folders at a relative tolerance: rounding noise on a two trillion dollar total and on a number near zero must pass, and four real problems must fail.
+
+Then grade: python module seven slash check dot p y. It imports your exercise file, runs each drill on fresh data in a temporary folder, and prints pass or the first difference it found. As delivered, all eight drills fail. The reference solution passes all eight.
+
+After that, take the walking quiz. It reads each question aloud. When a question says, look at the code on the screen, glance at the phone. The code is never read out loud. Tap an answer whenever you know it, and tap the question to hear it again.
+
+And when the drills feel easy, read the real files in the opa prop forty repository, in the B S Z analysis folder, under p y, and the R twin under R. You will recognise every idea from this lesson: one module for paths, a loader that owns its nulls, a runner that sorts and prints exactly, and a checker that aligns on keys and names its differences. Then read the step two files in the same folder, the Python twins of the R files, side by side with their R originals.

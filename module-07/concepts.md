@@ -11,6 +11,9 @@ deterministically, and check it against someone else's numbers. The source is
 the drills run on a synthetic panel in the same shape (`python data/build_rtb_sample.py`:
 invented people, random-walk fortunes). The SQL itself is covered in the SQL course
 (sql-industry-prep, module 6); here it is a black box that builds four tables.
+[Part 2](#part-2-translating-an-r-pipeline-into-a-python-twin) moves to the paper's
+second step, where a whole R pipeline has a Python twin, and drills the translation:
+openpyxl cell reading, pandas versions of the R idioms, and the parity test.
 
 The pipeline, as the real files split it:
 
@@ -202,7 +205,128 @@ can compare two independent implementations of everything except the SQL.
   `if __name__ == "__main__":`, so `_targets.R` and the tests can `source()` the file
   without running it.
 
-## The four drills
+## Part 2: translating an R pipeline into a Python twin
+
+Part 1 was the Python **around** one SQL file. Part 2 is a whole R pipeline rewritten in
+Python: the paper's second step (the public workbook to every number the R side exports),
+in `bsz-analysis/py/` of the same repo. The R pipeline stays the reference. The Python
+version exists to check it, so it is written to be compared, not to be idiomatic.
+
+### Function by function, file by file
+
+Each Python file is the twin of one R file, with the same function names:
+`R/excel_cells.R` and `py/excel_cells.py` both define `xls_cell()`, `R/compute_pareto.R`
+and `py/compute_pareto.py` both define `compute_pareto_missing()`, and so on across the files of step 2.
+`py/run_export.py` plays the role of `_targets.R`: it calls everything in order and writes
+`export/py/`. The rule is mirroring, not redesign:
+
+- **Same names, same order, same shapes.** A data frame keeps R's column names and column
+  order; R's named list becomes a dict with the same keys. Where the R code reproduces a
+  spreadsheet quirk (an average row computed the sheet's way), the twin reproduces the
+  same quirk, and a change to one side is a change to both.
+- **Comments carry the R index.** Year-aligned R vectors are 1-based and numpy arrays are
+  0-based, so the 2021 slot of a 2018-based panel is `x[4]` in R and `x[3]` in Python.
+  The twin keeps the R index in a comment wherever it matters (`# R: anchor_i is a + 1`).
+- **What is not twinned is listed.** Rendering (gt tables, ggplot figures), the report's
+  code listings and an R-only test helper stay in R; the twin produces the **data**
+  behind each table and figure, which is what the numbers are.
+- **Literals that vary live in one file.** `vintage.py` (twin of `R/vintage.R`) holds every
+  column letter and row offset that differs between the May and August workbooks, keyed
+  by an environment variable, `BSZ_VINTAGE`. Both languages switch the same way.
+
+### Reading cells with openpyxl, the way readxl does
+
+The R side reads many sheets **by position**: `read_sheet()` returns the whole sheet with
+columns named A, B, C and rows numbered as in Excel, and `xls_cell(df, "G16")` reads one
+cell. The Python twin, `ingest_excel.read_sheet()`, does the same with openpyxl:
+
+- **`openpyxl.load_workbook(path, data_only=True, read_only=True)`.** `data_only=True`
+  returns each formula cell's cached value, the number Excel last computed, which is what
+  readxl reads. Without it you get the formula text (`"=SUM(B4:B9)"`). A file saved by a
+  program that never calculated has no cached values, and `data_only=True` then gives
+  `None`. `read_only=True` streams the sheet, which is faster for big ones.
+- **`ws.iter_rows(values_only=True)`** yields one tuple of raw values per row: `str`,
+  `int`, `float`, `bool`, `None`, or a `datetime` for a date cell.
+- **A positional DataFrame.** Columns named by `excel_col_letters()` (A to Z, then AA, AB)
+  and `df.index = range(1, n + 1)`, so `df.at[16, "G"]` is cell G16, the way `df$G[16]` is
+  in R. Python's `df.iloc[15, 6]` would be the same cell, but the twin's job is to look
+  like the R line it mirrors.
+- **readxl's habits, reproduced.** It drops trailing empty rows and columns (a formatted
+  but empty cell at the bottom makes openpyxl report extra rows), and in a text column it
+  reports a date as its Excel serial number (2018-12-31 is 43465, days since 1899-12-30).
+  The twin converts each `datetime` back to that number.
+- **Number parsing can differ in the last digit.** readxl keeps the 17-digit text of a
+  number and R parses it with its own routine; openpyxl uses Python's `float()`, which is
+  correctly rounded. The two can differ by a unit in the last place, about 1e-16 of the
+  value. This is one reason the parity test needs a tolerance.
+
+### A cell as R's `as.numeric()` sees it
+
+R reads a mixed column as character and calls `suppressWarnings(as.numeric(v))`, so
+anything that is not a number becomes `NA`. The twin's `to_num()` returns `NaN` for the
+same cases, and the cases are not the ones `float()` would pick:
+
+| Cell | R `as.numeric()` | Python `float()` | `to_num()` |
+|---|---|---|---|
+| `" 97.293 "` | 97.293 | 97.293 | 97.293 |
+| `"1_000"` | NA | 1000.0 | NaN |
+| `"n/a"`, `"1,234"` | NA | ValueError | NaN |
+| a `TRUE` cell (text `"TRUE"` in R) | NA | 1.0 (`float(True)`) | NaN |
+| empty | NA | TypeError on `None` | NaN |
+
+`xls_cell()` parses the address with a regular expression (`^([A-Z]+)([0-9]+)$`) and
+returns NaN for an address outside the sheet, as R's `df$G[999]` returns `NA`.
+
+### pandas and numpy equivalents of the R idioms used
+
+| R | Python twin | The trap |
+|---|---|---|
+| `x %in% ids`, `!x %in% ids` | `s.isin(ids)`, `~s.isin(ids)` | `not` and `!` do not work on a Series; use `~` |
+| `!duplicated(pick(a, b, c))` | `~df.duplicated(subset=[a, b, c], keep="first")` | `drop_duplicates()` with no subset compares every column |
+| `n()` | `groupby(...).size()` | `.count()` counts non-missing values, like SQL's `COUNT(col)` |
+| `sum(x, na.rm = TRUE)` | `np.nansum(x)`, or pandas `.sum()` | `.sum(min_count=1)` gives NaN for an all-NaN group; `np.sum` gives NaN if any value is NaN |
+| `sum(x)` of a short vector | a left-to-right loop | numpy sums pairwise, so the last digit can differ |
+| `x[4]` (1-based) | `x[3]` | off by one, silently |
+| `c(x[-1], 0)` (drop the first, pad with 0) | `np.append(x[1:], 0)` | in Python `x[-1]` is the **last** element |
+| `seq(0, 0.2, by = 0.001)` | `0 + np.arange(n + 1) * 0.001` | `np.arange(0, 0.2, 0.001)` stops before 0.2 (200 values, not 201); with a nonzero start its rounded step can move the last digit |
+| `bind_rows()` of frames with different columns | `pd.concat()` | both fill the gaps with missing values |
+| `grepl("^2019.*average", x)` | `re.search(r"^2019.*average", s)` | R's `grepl` is vectorised; map it over the Series |
+
+Drill 7 uses the first four rows: it twins the R version of `compute_data_sec_agg()`
+(the dplyr code that `02_data_sec_agg.sql` later replaced) and is graded against that SQL
+file, run on the same sheet.
+
+### The parity test: two export folders, one relative tolerance
+
+`python py/run_export.py` writes every number the Python twin computes to `export/py/`
+(CSV, floats with `repr()`, `NA` for a missing value). `tests/testthat/test-py-parity.R`
+compares each file with its R counterpart: the export contract with `export/r/`, the site
+data with `site/data/`, and every computed table with the R snapshots. The comparison,
+`compare_parity_frames()`, is strict about everything except the last digits:
+
+- **Same column names, same number of rows.** Otherwise the output fails outright.
+- **Missing values in the same cells.** `NA` in R and a number in Python (or the reverse)
+  fails, whatever the tolerance.
+- **Text exactly.** Labels, years written as text, file names.
+- **Numbers within a relative tolerance:** `|python - r| <= 1e-9 * max(1, |r|)`.
+
+Why relative: one unit in the last place grows with the number. At 2e12 (a dollar total,
+like the drill's tax table) it is about 2e-4, so an **absolute** 1e-9 would fail on pure
+rounding. Why the `max(1, ...)` floor: some outputs are near zero by construction (a
+decomposition check that should be 0 and holds 1e-13), and a pure relative test would turn
+a 3e-16 gap into a 0.3% "difference". Why 1e-9: the real gaps are about 1e-16 of the value (the parsing
+difference above, R's `mean()` taking a second correction pass, numpy's pairwise sums),
+while the smallest digit the paper prints is 1e-3. A real bug moves a number by far more
+than 1e-9.
+
+Three habits of the real test worth copying. It **skips, never fails**, when `export/py/`
+is missing or was built from the other workbook vintage, so an R-only run is not blocked.
+It **flags files on one side only** (an extra Python file with no R snapshot fails). And
+`export/py/` is committed, so the test runs where Python is not installed. On the day it
+was written, 50 outputs and 53,855 numbers agreed to 5e-15 relative, and the site's data
+file was byte-identical.
+
+## The eight drills
 
 | Drill | Function | Real file it simplifies | Graded on |
 |---|---|---|---|
@@ -210,11 +334,15 @@ can compare two independent implementations of everything except the SQL.
 | Q2 | `run_and_export(con, sql_file, tables, out_dir, order_by)` | `run_sql.py` | byte-identical CSVs, and the sort really coming from `order_by` |
 | Q3 | `compare(ours, key, key_cols, num_cols, tol)` | `check_rtb_ca.py` | rows on each side, cells off, max difference, ok, on a pretend authors' sheet with a vintage gap |
 | Q4 | `parity(dir_a, dir_b, tables, tol)` | `cmp_parity()` in `check_rtb_ca.py` | an R-style export (same numbers, different text) passes, a changed value fails |
+| Q5 | `read_sheet(path, sheet)` (and `excel_col_letters(n)`) | `ingest_excel.py` | shape after dropping trailing empty rows, columns A to AB, index from 1, raw cells, a date as 43465.0 |
+| Q6 | `xls_cell(df, addr)` (and `to_num(v)`) | `excel_cells.py` | 18 addresses: numbers, text numbers with spaces, `"1_000"`, `"n/a"`, `TRUE`, a date, outside the sheet |
+| Q7 | `compute_data_sec_agg(data_sec_all, exclude_ids, cols)` | the dplyr code before `02_data_sec_agg.sql` | the SQL file's result at 1e-9 relative: exclusion, re-pasted rows (one with no worth), `n`, an all-missing column |
+| Q8 | `parity_rel(dir_r, dir_py, tol)` | `helper-py-parity.R` | an R folder against a good Python one (rounding noise at 2e12 and near 0: must pass) and a bad one (a 1e-7 gap, a missing file, an extra file, NA versus 0: must fail) |
 
 ```sh
-python data/build_rtb_sample.py              # once: data/*.csv and data/expected/
-python module-07/check.py                    # grades exercise.py: all four fail as delivered
-python module-07/check.py module-07/solution.py   # the reference passes all four
+python data/build_rtb_sample.py              # once: data/*.csv, data/workbook_sample.xlsx, data/expected/
+python module-07/check.py                    # grades exercise.py: all eight fail as delivered
+python module-07/check.py module-07/solution.py   # the reference passes all eight
 ```
 
 Then listen to `module-07/lesson/python-around-sql.m4b`, take the walking quiz (link in

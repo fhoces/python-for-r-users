@@ -267,3 +267,252 @@ par = {
 }
 (EXPECTED / "parity_results.json").write_text(json.dumps(par, indent=1) + "\n")
 print("  parity_results:", {k: {t: v["ok"] for t, v in d.items()} for k, d in par.items()})
+
+
+# =================================================================================
+# Part 2 (drills 5 to 8): a small workbook, a yearly panel, two export folders
+# =================================================================================
+# A second generator, so the part 1 files above stay byte-identical when this
+# section changes.
+import datetime  # noqa: E402
+import math  # noqa: E402
+import re  # noqa: E402
+import zipfile  # noqa: E402
+
+import openpyxl  # noqa: E402
+from openpyxl.styles import Font  # noqa: E402
+
+rng2 = np.random.default_rng(4026)
+WORKBOOK = DATA / "workbook_sample.xlsx"
+MONEY = ["forbes_worth", "forbes_public_worth", "purchase", "sale", "kg", "kg_long",
+         "kg_short", "option_profit", "noneq_comp", "ordinary_income", "kg_taxable",
+         "dividend", "fiscal_income", "donation", "donation_deductible", "income_taxable",
+         "ca_income_tax", "fed_ordinary_income_tax", "fed_preferential_tax",
+         "fed_income_tax", "fiscal_income_tax", "sales_tax", "w_txt", "w_tax_ppent",
+         "w_pi", "public_worth", "public_worth_avg", "total_tax", "economic_income"]
+SUMMED = [c for c in MONEY if c not in ("public_worth", "public_worth_avg")]   # 27
+
+# data_sec_all: one row per California billionaire and year, $ million, in
+# sheet order, with the cases the R code had to handle (see the SQL course's
+# build script for the same design): an excluded id, two fortunes for one
+# person in 2022, a column empty for all of 2019, and a re-pasted tail of
+# four 2025 rows (one with a re-typed dividend, one with no worth).
+ca = list(ca_ids)
+w_start = np.exp(rng2.uniform(np.log(1100), np.log(30000), len(ca)))
+w_start[:4] = [150000, 110000, 90000, 85000]           # the top 4 come first in ca
+SHARES = {"purchase": .004, "sale": .010, "kg": .008, "kg_long": .007, "kg_short": .001,
+          "option_profit": .002, "noneq_comp": .0005, "ordinary_income": .001,
+          "kg_taxable": .008, "dividend": .003, "fiscal_income": .012, "donation": .002,
+          "donation_deductible": .001, "income_taxable": .010, "ca_income_tax": .0012,
+          "fed_ordinary_income_tax": .0004, "fed_preferential_tax": .0015,
+          "fed_income_tax": .0019, "fiscal_income_tax": .003, "sales_tax": .0002,
+          "w_txt": .004, "w_tax_ppent": .0003, "w_pi": .03, "total_tax": .008,
+          "economic_income": .04}
+recs = []
+for yr in range(2019, 2026):
+    keep = (rng2.uniform(size=len(ca)) < 0.85) | (np.arange(len(ca)) < 4)
+    for i in np.flatnonzero(keep):
+        wv = round(float(w_start[i] * np.exp(rng2.normal(0.06 * (yr - 2019), 0.15))), 3)
+        pub = round(wv * float(rng2.uniform(0.3, 0.95)), 3)
+        r = {"year": yr, "forbes_id": ca[i], "forbes_worth": wv, "forbes_public_worth": pub}
+        for c, sh in SHARES.items():
+            v = round(wv * sh * float(rng2.uniform(0.2, 1.8)), 4)
+            p_null = 0 if c in ("w_txt", "w_tax_ppent", "w_pi", "total_tax", "economic_income") \
+                else 0.5 if c == "option_profit" else 0.15
+            r[c] = None if rng2.uniform() < p_null else v
+        r["public_worth"] = round(pub * float(rng2.uniform(0.95, 1.05)), 3)
+        r["public_worth_avg"] = round(pub * float(rng2.uniform(0.85, 1.0)), 3)
+        recs.append(r)
+dsa = pd.DataFrame(recs)[["year", "forbes_id"] + MONEY]
+others = [i for i in ca if i not in set(people.loc[0:11, "forbes_id"])]
+excluded_id, twin_id = others[0], others[1]
+dsa = dsa[~((dsa.forbes_id == twin_id) & (dsa.year == 2022))]
+twin = pd.DataFrame({"year": 2022, "forbes_id": twin_id, "forbes_worth": [8000.0, 5256.0]})
+twin["forbes_public_worth"] = (twin["forbes_worth"] * 0.6).round(3)
+for c in MONEY[2:]:
+    twin[c] = (twin["forbes_worth"] * rng2.uniform(0.001, 0.01, 2)).round(4)
+dsa = pd.concat([dsa, twin], ignore_index=True)
+dsa = dsa.sort_values(["year", "forbes_worth"], ascending=[True, False], kind="stable")
+dsa = dsa.reset_index(drop=True).astype(object)
+dsa.loc[dsa.year == 2019, "option_profit"] = None
+last4 = list(dsa.index[(dsa.year == 2025) & (dsa.forbes_id != excluded_id)][-4:])
+dsa.loc[last4[3], "forbes_worth"] = None
+tail = dsa.loc[last4].copy()
+tail.loc[last4[1], "dividend"] = round(float(tail.loc[last4[1], "dividend"]) + 0.5, 4)
+dsa = pd.concat([dsa, tail], ignore_index=True)
+
+# The workbook. Sheet data_sec_all: three title rows, the header in row 4,
+# data from row 5, an empty cell for every missing value. Sheet summary: a
+# hand-made block of labels and numbers, some typed as text, as positional
+# sheets in the real workbook are.
+wb = openpyxl.Workbook()
+ws = wb.active
+ws.title = "data_sec_all"
+ws["A1"] = "Back to index"
+ws["A2"] = "Wealth, income and taxes of California billionaires (synthetic, course data)"
+ws["A3"] = "All dollar value variables in $ million (nominal)"
+ws.append(["year", "forbes_id"] + MONEY)
+for rec in dsa.itertuples(index=False):
+    ws.append([None if (v is None or (isinstance(v, float) and math.isnan(v))) else v
+               for v in rec])
+sm = wb.create_sheet("summary")
+sm["A1"] = "Back to index"
+sm["A2"] = "Income tax block (synthetic, course data)"
+sm["AB2"] = "note: this sheet is 28 columns wide"
+sm.append([])
+sm["A4"] = "year"
+for j, yr in enumerate(range(2018, 2023)):
+    sm.cell(row=4, column=2 + j, value=yr)
+    sm.cell(row=5, column=2 + j, value=round(1800 + 95.5 * j + float(rng2.uniform(0, 30)), 3))
+sm["A5"] = "ca_agi_b"
+sm["A6"] = "ca_inctax_b"
+for col, v in zip("BCDEF", [" 97.293 ", "1_000", "n/a", None, "1e3"]):
+    sm[f"{col}6"] = v
+sm["A7"] = "as_of"
+sm["B7"] = datetime.datetime(2018, 12, 31)
+sm["C7"] = True
+sm["D7"] = "  -12  "
+sm["E7"] = "1,234"
+sm["F7"] = 0.1 + 0.2
+sm["A12"] = "Total"
+sm["B12"] = 12345.678
+sm["A25"].font = Font(bold=True)   # a formatted but empty cell: a trailing empty row
+for w_ in (wb.properties,):
+    w_.creator = "build_rtb_sample.py"
+    w_.created = w_.modified = datetime.datetime(2026, 1, 1)
+tmp_xlsx = DATA / "workbook_sample.tmp.xlsx"
+wb.save(tmp_xlsx)
+# Rewrite the zip with fixed timestamps, so a rebuild gives identical bytes.
+with zipfile.ZipFile(tmp_xlsx) as zin, zipfile.ZipFile(WORKBOOK, "w", zipfile.ZIP_DEFLATED) as zout:
+    for item in zin.infolist():
+        info = zipfile.ZipInfo(item.filename, date_time=(2026, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        data = zin.read(item.filename)
+        if item.filename == "docProps/core.xml":   # openpyxl stamps the save time here
+            data = re.sub(rb"(<dcterms:modified[^>]*>)[^<]*", rb"\g<1>2026-01-01T00:00:00Z", data)
+        zout.writestr(info, data)
+tmp_xlsx.unlink()
+print(f"data/workbook_sample.xlsx: data_sec_all {len(dsa)} rows (excluded id {excluded_id}), "
+      "summary sheet")
+
+# Drill 5: what read_sheet() should return, checked against what was written.
+summary = solution.read_sheet(WORKBOOK, "summary")
+assert summary.shape == (12, 28), summary.shape
+assert summary.at[7, "B"] == 43465.0 and summary.at[7, "C"] is True
+sheet_checks = {
+    "summary": {"shape": list(summary.shape), "columns_last": summary.columns[-1],
+                "cells": {"A2": summary.at[2, "A"], "AB2": summary.at[2, "AB"],
+                          "B4": summary.at[4, "B"], "B6": summary.at[6, "B"],
+                          "E6": summary.at[6, "E"], "B7": summary.at[7, "B"],
+                          "C7": summary.at[7, "C"], "B12": summary.at[12, "B"]}},
+}
+dsa_sheet = solution.read_sheet(WORKBOOK, "data_sec_all")
+sheet_checks["data_sec_all"] = {
+    "shape": list(dsa_sheet.shape), "columns_last": dsa_sheet.columns[-1],
+    "cells": {"A4": dsa_sheet.at[4, "A"], "AE4": dsa_sheet.at[4, "AE"],
+              "A5": dsa_sheet.at[5, "A"], "B5": dsa_sheet.at[5, "B"],
+              f"C{len(dsa_sheet)}": dsa_sheet.at[len(dsa_sheet), "C"]},
+}
+(EXPECTED / "read_sheet.json").write_text(json.dumps(sheet_checks, indent=1) + "\n")
+
+# Drill 6: what xls_cell() should return for a list of addresses.
+ADDRS = ["B4", "B5", "F5", "A5", "B6", "C6", "D6", "E6", "F6", "B7", "C7", "D7", "E7",
+         "F7", "B12", "AB2", "Z99", "A30"]
+cells = [[a, None if math.isnan(x) else x] for a, x in
+         ((a, solution.xls_cell(summary, a)) for a in ADDRS)]
+assert dict(cells)["B6"] == 97.293 and dict(cells)["C6"] is None and dict(cells)["F6"] == 1000.0
+(EXPECTED / "xls_cells.json").write_text(json.dumps(cells, indent=1) + "\n")
+
+# Drill 7: the yearly aggregates from the real SQL file, the reference that
+# the pandas twin must match. The input is the sheet as pandas reads it.
+dsa_in = pd.read_excel(WORKBOOK, sheet_name="data_sec_all", skiprows=3)
+inputs7 = {"exclude_ids": [excluded_id], "cols": SUMMED}
+(EXPECTED / "data_sec_agg_inputs.json").write_text(json.dumps(inputs7, indent=1) + "\n")
+with tempfile.TemporaryDirectory() as tmp:
+    con = sqlite3.connect(Path(tmp) / "wb.sqlite")
+    d = dsa_in.copy()
+    d.insert(0, "row_num", np.arange(1, len(d) + 1))
+    d.to_sql("data_sec_all", con, index=False)
+    pd.DataFrame({"forbes_id": [excluded_id]}).to_sql("data_sec_agg_exclude", con, index=False)
+    con.executescript((ROOT / "module-07" / "02_data_sec_agg.sql").read_text(encoding="utf-8"))
+    agg = pd.read_sql("SELECT * FROM data_sec_agg ORDER BY year", con)
+    con.close()
+write_csv = lambda df, path: df.to_csv(path, index=False, lineterminator="\n",  # noqa: E731
+                                       float_format=None, na_rep="NA")
+write_csv(agg, EXPECTED / "data_sec_agg.csv")
+twin_check = solution.compute_data_sec_agg(dsa_in, [excluded_id], SUMMED)
+rel = (twin_check[SUMMED].to_numpy(float) - agg[SUMMED].to_numpy(float))
+assert np.all(np.abs(rel) <= 1e-9 * np.maximum(1, np.abs(agg[SUMMED].to_numpy(float))))
+assert list(twin_check["n"]) == list(agg["n"])
+print(f"  data/expected/data_sec_agg.csv: {len(agg)} years, from 02_data_sec_agg.sql")
+
+
+# Drill 8: an "R" export folder and two "Python" ones. R writes 17 significant
+# digits and NA; the good Python folder writes repr() and differs only by
+# rounding noise; the bad one has four real problems.
+def write_rows(path, header, rows, fmt):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f, lineterminator="\n")
+        w.writerow(header)
+        for r in rows:
+            w.writerow([fmt(v) for v in r])
+
+
+def fmt_r(v):
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return "NA"
+    return "%.17g" % v if isinstance(v, float) else str(v)
+
+
+def fmt_py(v):
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return "NA"
+    return repr(v) if isinstance(v, float) else str(v)
+
+
+PAR = EXPECTED / "parity_rel"
+agg_rows = [[int(r[0]), int(r[1])] + [float(x) for x in r[2:]]
+            for r in agg.itertuples(index=False)]
+ftb_rows = [[yr, int(rng2.integers(17_000_000, 21_000_000)),
+             float(rng2.uniform(1.8e12, 2.3e12)).__round__(2)] for yr in range(2016, 2023)]
+rates_rows = []
+for period in ("2004-2016", "2017-2025"):
+    tot = float(rng2.uniform(0.2, 0.3))
+    parts = [float(x) for x in rng2.uniform(0.02, 0.06, 4)]
+    rest = tot - sum(parts)
+    check = tot - (parts[0] + parts[1] + parts[2] + parts[3] + rest)   # about 1e-17
+    rates_rows.append([period, tot, rest, check + 1.3e-13, None if period == "2004-2016"
+                       else float(rng2.uniform(40000, 60000))])
+files = {
+    "data_sec_agg.csv": (list(agg.columns), agg_rows),
+    "ftb_totals.csv": (["taxable_year", "all_returns", "ca_agi"], ftb_rows),
+    "tax_rates.csv": (["period", "total_tax_per_income", "other_per_income",
+                       "check_income_decomp", "avg_wealth_m"], rates_rows),
+}
+if PAR.exists():
+    shutil.rmtree(PAR)
+for name, (header, rows) in files.items():
+    write_rows(PAR / "r" / name, header, rows, fmt_r)
+
+good = {k: (h, [list(r) for r in rows]) for k, (h, rows) in files.items()}
+good["data_sec_agg.csv"][1][2][4] *= 1 + 2e-15          # summation-order noise
+good["ftb_totals.csv"][1][3][2] = float(np.nextafter(np.nextafter(
+    good["ftb_totals.csv"][1][3][2], np.inf), np.inf))    # 2 ulps: ~5e-4 apart in $
+good["tax_rates.csv"][1][1][3] += 3e-16                 # tiny value, tiny absolute gap
+for name, (header, rows) in good.items():
+    write_rows(PAR / "py_good" / name, header, rows, fmt_py)
+
+bad = {k: (h, [list(r) for r in rows]) for k, (h, rows) in files.items()}
+bad["data_sec_agg.csv"][1][5][6] *= 1 + 1e-7            # a real difference
+del bad["ftb_totals.csv"]                               # a file Python never wrote
+bad["tax_rates.csv"][1][0][4] = 0.0                     # NA in R, 0 in Python
+bad["notes.csv"] = (["note"], [["written by Python only"]])
+for name, (header, rows) in bad.items():
+    write_rows(PAR / "py_bad" / name, header, rows, fmt_py)
+
+par2 = {k: solution.parity_rel(PAR / "r", PAR / k) for k in ("py_good", "py_bad")}
+assert all(v["ok"] for v in par2["py_good"].values()), par2["py_good"]
+assert not any(v["ok"] for v in par2["py_bad"].values()), par2["py_bad"]
+(EXPECTED / "parity_rel_results.json").write_text(json.dumps(par2, indent=1) + "\n")
+print("  parity_rel_results:", {k: {t: v["ok"] for t, v in d.items()} for k, d in par2.items()})

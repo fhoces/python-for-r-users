@@ -3,8 +3,11 @@
 **Quiz page:** https://claude.ai/artifact/8ffFhvpHZLKPEzwyNtiUqe (claude.ai Artifact,
 capabilities `db` + `user`, private to the owner).
 
-An adaptive, read-aloud multiple-choice quiz on module 7: 10 concepts, each at three
-levels (Warm-up, Core, Deep), 30 questions. It is built for walking with the phone in a
+An adaptive, read-aloud multiple-choice quiz on module 7: 16 concepts, each at three
+levels (Warm-up, Core, Deep), 48 questions. Concepts 1 to 10 cover part 1; concepts 11
+to 16, added with part 2, cover function-by-function twins, reading a sheet with
+openpyxl, a cell as R's `as.numeric()` sees it, indexes and sequences in R versus numpy,
+missing values and counts in pandas, and the parity test. It is built for walking with the phone in a
 pocket:
 
 - every question and option is read aloud in the audiobook voice (edge-tts,
@@ -32,7 +35,7 @@ the ArtifactData tool to update `progress.md`.
 | `questions.md` | readable version with the answer key, generated; do not edit |
 | `listen.template.html` | the page template (from book-summaries, with the code box added) |
 | `listen.html` | the built page that is published |
-| `audio/clips.json`, `audio/*.mp3` | 210 clips: per question a stem, four options, a "correct" and a "not quite" explanation |
+| `audio/clips.json`, `audio/*.mp3` | 336 clips: per question a stem, four options, a "correct" and a "not quite" explanation |
 | `progress.md` | your results, pulled from the page's database |
 
 ## Rebuild
@@ -51,4 +54,4 @@ republish `listen.html` to the same URL with the MP3s in the Artifact tool's `fi
 (at most 255 per publish).
 
 `make_clips.py` also prints the balance checks: the right answer is the longest option
-in 5 of 30 questions, and right answers sit at A 8, B 7, C 7 and D 8 times.
+in 9 of 48 questions, and right answers sit at A, B, C and D 12 times each.

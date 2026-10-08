@@ -1,5 +1,5 @@
 """
-Module 7: grade the four drill functions.
+Module 7: grade the eight drill functions (part 1: Q1 to Q4; part 2: Q5 to Q8).
 
 Usage, from the repo root (after `python data/build_rtb_sample.py`):
 
@@ -12,7 +12,9 @@ temporary folder, and compares the result with data/expected/. Prints one line
 per drill: PASS, or the first difference. Exit code 1 if any drill fails.
 
 The drills are graded independently: drill 2 runs on a database this script
-builds itself, so a broken loader in drill 1 does not fail drill 2.
+builds itself, so a broken loader in drill 1 does not fail drill 2, and drills
+6 and 7 read the workbook with the grader's own reader, not your drill 5.
+Part 2 needs openpyxl (pandas' Excel reader uses it too).
 """
 import csv
 import importlib.util
@@ -189,8 +191,133 @@ def drill4(mod, tmp):
     return None
 
 
+# ---------------------------------------------------------------------------
+# Part 2: drills 5 to 8 (an R pipeline and its Python twin)
+# ---------------------------------------------------------------------------
+WORKBOOK = DATA / "workbook_sample.xlsx"
+
+
+def _same(a, b):
+    """Equal values, numbers within 1e-12 (an int and a float can match)."""
+    if a is None or b is None or isinstance(a, bool) or isinstance(b, bool):
+        if isinstance(a, float) and math.isnan(a):
+            a = None
+        return a is b or a == b and type(a) is type(b)
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return abs(float(a) - float(b)) <= 1e-12
+    return a == b
+
+
+def _grader_sheet(sheet):
+    """The grader's own positional read of a sheet (independent of drill 5)."""
+    import openpyxl
+    wb = openpyxl.load_workbook(WORKBOOK, data_only=True, read_only=True)
+    rows = [list(r) for r in wb[sheet].iter_rows(values_only=True)]
+    wb.close()
+    epoch = __import__("datetime").datetime(1899, 12, 30)
+    rows = [[(v - epoch).total_seconds() / 86400 if hasattr(v, "year") else v for v in r]
+            for r in rows]
+    while rows and all(v is None for v in rows[-1]):
+        rows.pop()
+    width = max(max((j + 1 for j, v in enumerate(r) if v is not None), default=0) for r in rows)
+
+    def letters(n):
+        x, out = n, ""
+        while x > 0:
+            x, r = divmod(x - 1, 26)
+            out = chr(65 + r) + out
+        return out
+    df = pd.DataFrame([r[:width] + [None] * (width - len(r[:width])) for r in rows],
+                      columns=[letters(j) for j in range(1, width + 1)], dtype=object)
+    df.index = range(1, len(df) + 1)
+    return df
+
+
+def drill5(mod, tmp):
+    exp = json.loads((EXPECTED / "read_sheet.json").read_text())
+    for sheet, e in exp.items():
+        df = mod.read_sheet(WORKBOOK, sheet)
+        if not isinstance(df, pd.DataFrame):
+            return f"{sheet}: returned {type(df).__name__}, expected a DataFrame"
+        if list(df.shape) != e["shape"]:
+            return (f"{sheet}: shape {df.shape}, expected {tuple(e['shape'])} "
+                    "(are trailing empty rows dropped? is every column kept?)")
+        if list(df.columns[:3]) != ["A", "B", "C"] or df.columns[-1] != e["columns_last"]:
+            return f"{sheet}: columns {list(df.columns[:3])} ... {df.columns[-1]!r}, expected A, B, C ... {e['columns_last']!r}"
+        if df.index[0] != 1:
+            return f"{sheet}: the index starts at {df.index[0]!r}; it should be the sheet row, from 1"
+        for addr, want in e["cells"].items():
+            col, row = addr.rstrip("0123456789"), int(addr.lstrip("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+            got = df.at[row, col]
+            if isinstance(got, float) and math.isnan(got) and want is None:
+                continue
+            if not _same(got, want):
+                return f"{sheet}!{addr}: {got!r}, expected {want!r}"
+    return None
+
+
+def drill6(mod, tmp):
+    df = _grader_sheet("summary")
+    for addr, want in json.loads((EXPECTED / "xls_cells.json").read_text()):
+        got = mod.xls_cell(df, addr)
+        if want is None:
+            if not (isinstance(got, float) and math.isnan(got)):
+                return f"xls_cell(df, {addr!r}) is {got!r}, expected NaN (not a number, as R's as.numeric() sees it)"
+        elif not isinstance(got, float) or abs(got - want) > 1e-12:
+            return f"xls_cell(df, {addr!r}) is {got!r}, expected {want!r} (a float)"
+    return None
+
+
+def drill7(mod, tmp):
+    spec = json.loads((EXPECTED / "data_sec_agg_inputs.json").read_text())
+    dsa = pd.read_excel(WORKBOOK, sheet_name="data_sec_all", skiprows=3)
+    exp = pd.read_csv(EXPECTED / "data_sec_agg.csv")
+    got = mod.compute_data_sec_agg(dsa.copy(), spec["exclude_ids"], spec["cols"])
+    want_cols = ["year", "n"] + spec["cols"]
+    if list(got.columns) != want_cols:
+        return f"columns {list(got.columns)[:4]}..., expected {want_cols[:4]}... ({len(want_cols)} in all)"
+    if len(got) != len(exp):
+        return f"{len(got)} rows, expected {len(exp)} (one per year)"
+    got = got.reset_index(drop=True)
+    if list(got["year"]) != list(exp["year"]):
+        return f"years {list(got['year'])}, expected {list(exp['year'])}"
+    for i in range(len(exp)):
+        if int(got.at[i, "n"]) != int(exp.at[i, "n"]):
+            return (f"year {exp.at[i, 'year']}: n {got.at[i, 'n']!r}, expected {exp.at[i, 'n']} "
+                    "(count rows, not non-missing values; drop each re-paste once)")
+    for c in spec["cols"]:
+        a = got[c].to_numpy(dtype=float)
+        b = exp[c].to_numpy(dtype=float)
+        bad = ~(abs(a - b) <= 1e-9 * pd.Series(abs(b)).clip(lower=1).to_numpy())
+        if bad.any():
+            i = int(bad.argmax())
+            return f"year {exp.at[i, 'year']}, {c}: {a[i]!r}, expected {b[i]!r}"
+    return None
+
+
+def drill8(mod, tmp):
+    exp = json.loads((EXPECTED / "parity_rel_results.json").read_text())
+    base = EXPECTED / "parity_rel"
+    for other, results in exp.items():
+        got = mod.parity_rel(base / "r", base / other)
+        if sorted(got) != sorted(results):
+            return f"r vs {other}: files {sorted(got)}, expected {sorted(results)}"
+        for name, e in results.items():
+            g = got[name]
+            if g.get("ok") is not e["ok"]:
+                return f"r vs {other}, {name}: ok {g.get('ok')!r}, expected {e['ok']} (full result {g!r})"
+            if g.get("n_values") != e["n_values"]:
+                return f"r vs {other}, {name}: n_values {g.get('n_values')!r}, expected {e['n_values']}"
+            gm, em = g.get("max_rel_diff"), e["max_rel_diff"]
+            if (gm is None) != (em is None) or (em is not None and abs(gm - em) > 1e-6 * em + 1e-20):
+                return f"r vs {other}, {name}: max_rel_diff {gm!r}, expected {em!r}"
+    return None
+
+
 DRILLS = [("Q1", "load_csv", drill1), ("Q2", "run_and_export", drill2),
-          ("Q3", "compare", drill3), ("Q4", "parity", drill4)]
+          ("Q3", "compare", drill3), ("Q4", "parity", drill4),
+          ("Q5", "read_sheet", drill5), ("Q6", "xls_cell", drill6),
+          ("Q7", "compute_data_sec_agg", drill7), ("Q8", "parity_rel", drill8)]
 
 
 def main(argv):

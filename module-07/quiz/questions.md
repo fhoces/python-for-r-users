@@ -314,6 +314,195 @@ for chunk in reader:
 - C) identical of a and b, after rounding both to six decimals
 - D) a equals equals b, wrapped in all
 
+## 11. Function by function twins
+**Warm-up.** Why does each Python file in the twin keep the same function names as its R file?
+- A) Because Python can call R functions by name through a bridge package
+- B) So each function can be checked side by side with its R original
+- C) Because the R targets pipeline runs the Python files under those names
+- D) Because Python requires a module's functions to match its file name
+
+**Core.** (code) Look at the code on the screen. Why do the comments give R's version of each index?
+
+```python
+a = int(anchor[0])                 # 0-based; R's anchor_i is a + 1
+D23 = np.mean(pareto_b_emp[a:n])   # average Pareto b above anchor
+below = np.arange(a)               # R: seq_len(anchor_i - 1)
+n_above_proj[below] = B[a] * (A[a] / A[below]) ** D24
+```
+
+- A) A converter reads the comments to write the matching R file
+- B) Numpy needs the R index to line the arrays up with the years
+- C) R counts from one and numpy from zero, so each comment ties the line to its R twin
+- D) The parity test prints the R index when two values differ
+
+**Deep.** The R code reproduces an odd spreadsheet rule for one average row. What should the Python twin do?
+- A) Reproduce the same rule, since the twin exists to be compared with the R
+- B) Compute the textbook average and let the parity test flag the gap
+- C) Leave that row out, since spreadsheet quirks are not part of the analysis
+- D) Fix the rule in Python only, since the Python version is the newer one
+
+## 12. Reading a sheet with openpyxl
+**Warm-up.** (code) Look at the code on the screen. What does data only equals true change?
+
+```python
+wb = openpyxl.load_workbook(
+    path, data_only=True, read_only=True)
+ws = wb["summary"]
+for row in ws.iter_rows(values_only=True):
+    ...
+```
+
+- A) Only cells holding data are read, so every empty cell is skipped on loading
+- B) Cell formats such as dates and percentages are dropped on reading
+- C) The workbook opens without its macros, which makes loading faster
+- D) Formula cells return the value Excel last computed, not the formula text
+
+**Core.** The twin's frame names its columns A, B, C and starts its index at one. Why?
+- A) Because pandas cannot load a sheet unless the columns carry Excel letters
+- B) So cell G16 is read as row sixteen, column G, like the R line it mirrors
+- C) Because openpyxl numbers rows from one, and pandas cannot renumber them
+- D) So that positional and label lookups always return the same cell
+
+**Deep.** (code) Look at the code on the screen. Data ends in row twelve, and row twenty five has one bold but empty cell. How many rows does the frame keep?
+
+```python
+rows = [list(r) for r in ws.iter_rows(values_only=True)]
+while rows and all(v is None for v in rows[-1]):
+    rows.pop()
+df = pd.DataFrame(rows, columns=excel_col_letters(width))
+df.index = range(1, len(df) + 1)
+```
+
+- A) Twenty five, because the formatted cell makes the row count as used
+- B) Twenty four, because the loop removes the last row once and then stops
+- C) Twelve, because trailing rows that are entirely empty are dropped, as readxl does
+- D) Thirteen, because one empty row is kept to mark the end of the data
+
+## 13. A cell as R's as numeric sees it
+**Warm-up.** A cell holds the text one, underscore, zero zero zero. What do R's as numeric and Python's float return?
+- A) R gives missing, while float returns one thousand
+- B) Both return one thousand, since both ignore underscores in numbers
+- C) Both give missing, since an underscore is not a digit in either
+- D) R gives one thousand, while float raises a value error
+
+**Core.** (code) Look at the code on the screen. Why test for a bool before testing for a number?
+
+```python
+def to_num(v):
+    if v is None or isinstance(v, bool):
+        return math.nan
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip()
+    ...
+```
+
+- A) Openpyxl returns booleans as text, so they would reach float and raise
+- B) A bool would make float raise an error, since float rejects true and false
+- C) Booleans mark formula cells, which have to be read with data only
+- D) In Python true counts as an int, so it would become one, where R gives missing
+
+**Deep.** Which of these cells gives missing in R but a number from Python's float?
+- A) A number with spaces around it
+- B) A cell holding true
+- C) The text n slash a
+- D) An empty cell
+
+## 14. Indexes and sequences, R versus numpy
+**Warm-up.** (code) Look at the code on the screen. In R, x minus one drops the first element. What does the last line give here?
+
+```python
+x = np.array([10.0, 20.0, 30.0, 40.0])
+x[-1]
+```
+
+- A) Twenty, thirty and forty, the same three values that R would give
+- B) An error, because numpy only accepts indexes of zero or more
+- C) Forty, the last element, because negative indexes count from the end
+- D) Ten, twenty and thirty, because minus one drops the last element of the array
+
+**Core.** A yearly panel starts in 2018. In R the 2021 value is x four. Which numpy index gives it?
+- A) Four, because the twin keeps R's index to stay comparable
+- B) Three, because numpy counts from zero
+- C) Five, because Python ranges stop one before their end
+- D) Minus four, counting back from the end of an eight year panel
+
+**Deep.** (code) Look at the code on the screen. R's sequence from zero to point two by point zero zero one has two hundred and one values. What do the two lengths show?
+
+```python
+r_like = 0 + np.arange(201) * 0.001
+py_way = np.arange(0, 0.2, 0.001)
+len(r_like), len(py_way)
+```
+
+- A) Two hundred one both times, because arange includes its end point, as R's seq does
+- B) Two hundred both times, because rounding loses the last step in both
+- C) Two hundred one, then two hundred two, because arange overshoots by a step
+- D) Two hundred one, then two hundred, because arange stops before its end point
+
+## 15. Missing values and counts in pandas
+**Warm-up.** In R, n counts the rows in each group. Which pandas method is its twin?
+- A) Size, which counts rows whether or not their values are missing
+- B) Count, which counts the rows in each group of the grouped data frame
+- C) Nunique, which counts the distinct rows in each group
+- D) Value counts, which tallies how many rows each group holds
+
+**Core.** (code) Look at the code on the screen. Every 2019 option profit is missing. What does this give for 2019, and what did R give?
+
+```python
+g = d.groupby("year")
+out = g[cols].sum(min_count=1) / 1000
+out.insert(0, "n", g.size())
+```
+
+- A) Zero in both, since min count only matters for groups with no rows
+- B) Not a number in both, since R's sum also needs at least one value
+- C) Not a number here, but zero in R, whose sum with n a dot r m returns zero
+- D) An error here, since min count only works on columns with no missing values at all
+
+**Deep.** A re-pasted row differs from its original only in a re-typed dividend. Why does drop duplicates with no arguments keep it?
+- A) It keeps the last copy by default, and the last copy is the re-typed one
+- B) It compares every column, so the re-typed cell makes the rows different
+- C) It skips every row that contains a missing value somewhere
+- D) It compares only the index, and the index differs on every row
+
+## 16. The parity test
+**Warm-up.** (code) Look at the code on the screen. Why divide by the larger of one and the R value, not by the R value alone?
+
+```python
+rel = abs(py - r) / max(1.0, abs(r))
+ok = rel <= 1e-9
+```
+
+- A) To avoid dividing by zero, which is the only case where it matters
+- B) To make the test absolute for every value larger than one
+- C) Near zero, a tiny divisor would turn rounding noise into a huge relative gap
+- D) To round the values below one before they are compared
+
+**Core.** An R total is two trillion dollars, and the Python value differs in the last place, by about two ten thousandths. Which test passes it?
+- A) One in a billion, absolute, since the gap is far below a single dollar of the total
+- B) None, since any gap in a dollar total means a bug somewhere
+- C) Only an exact text match, since both sides print the same digits
+- D) One in a billion, relative, since the gap is a tiny fraction of the value
+
+**Deep.** (code) Look at the code on the screen. What should the parity test say about this column?
+
+```python
+r = pd.read_csv("r/tax_rates.csv", dtype=str,
+                keep_default_na=False)
+py = pd.read_csv("py/tax_rates.csv", dtype=str,
+                 keep_default_na=False)
+r["avg_wealth_m"].tolist()
+# ['NA', '49317.082454441741']
+py["avg_wealth_m"].tolist()
+# ['0.0', '49317.08245444174']
+```
+
+- A) Fail, because missing in R and a number in Python is a real difference
+- B) Pass, because the numbers present agree, and zero is Python's missing
+- C) Pass, because the second values differ only in their last printed digits
+- D) Fail, because the second values are written with different digits
+
 ## Answer key
 
 - 1.1 Chunked reading, Warm-up: **B**. With a chunk size, read csv returns an iterator. Each step of the loop gives the next block of rows, so memory holds one block at a time.
@@ -346,3 +535,21 @@ for chunk in reader:
 - 10.1 The R equivalents, Warm-up: **B**. D B I runs one statement per call, so run s q l dot R splits the text itself, skipping semicolons inside comments and strings.
 - 10.2 The R equivalents, Core: **D**. read csv chunked calls your function on each block of rows, like the for loop over pandas chunks. n max only reads the first rows.
 - 10.3 The R equivalents, Deep: **A**. The checker takes the largest absolute difference. all equal compares a mean relative difference, and identical has no tolerance at all.
+- 11.1 Function by function twins, Warm-up: **B**. The twin exists to be compared. Same names, same order and same shapes let a reader hold the R line and the Python line together.
+- 11.2 Function by function twins, Core: **C**. A 2018-based panel's 2021 value is x four in R and x three in numpy. Keeping the R index in a comment makes the translation checkable by eye.
+- 11.3 Function by function twins, Deep: **A**. A twin that quietly improves on the R stops being a check. A change belongs in both languages, or in neither.
+- 12.1 Reading a sheet with openpyxl, Warm-up: **D**. Each formula cell stores the formula and its last computed value. R's reader returns the value, so the twin asks for it too.
+- 12.2 Reading a sheet with openpyxl, Core: **B**. With letters as columns and sheet rows as the index, the Python lookup reads like R's dollar G of sixteen, which keeps the translation easy to check.
+- 12.3 Reading a sheet with openpyxl, Deep: **C**. Openpyxl reports every row up to the formatted cell. The loop pops empty rows from the end until a row holds a value, which matches readxl.
+- 13.1 A cell as R's as numeric sees it, Warm-up: **A**. Python accepts underscores as digit separators, R does not. The twin's to num function checks for an underscore so it matches R.
+- 13.2 A cell as R's as numeric sees it, Core: **D**. Bool is a subclass of int in Python, so float of true is one. R reads a true cell in a text column as the word true, and as numeric makes that missing.
+- 13.3 A cell as R's as numeric sees it, Deep: **B**. Both languages read a number with spaces. Both reject n slash a, R with missing and Python with an error. Float fails on an empty cell. Only true becomes one in Python.
+- 14.1 Indexes and sequences, R versus numpy, Warm-up: **C**. In Python a negative index counts back from the end. R's x minus one is a slice from one in Python.
+- 14.2 Indexes and sequences, R versus numpy, Core: **B**. R's first element is one and numpy's is zero, so every R index drops by one. The twin writes three and keeps four in a comment.
+- 14.3 Indexes and sequences, R versus numpy, Deep: **D**. Arange never includes its stop value. The twin writes R's formula, start plus a whole number times the step, so it gets R's values.
+- 15.1 Missing values and counts in pandas, Warm-up: **A**. Count skips missing values, like count of a column in SQL. A kept row with no worth is still a person, so the twin uses size.
+- 15.2 Missing values and counts in pandas, Core: **C**. Plain pandas sum gives zero for an all missing group, as R does. Min count of one turns that zero into not a number.
+- 15.3 Missing values and counts in pandas, Deep: **B**. Without a subset, a duplicate must match in every column. R's duplicated on year, id and worth, and pandas with that subset, both drop the copy.
+- 16.1 The parity test, Warm-up: **C**. A check that should be zero and holds one in ten to the thirteenth would make a harmless gap look like a big one. The floor turns the test absolute near zero.
+- 16.2 The parity test, Core: **D**. Two ten thousandths is far more than one in a billion, so an absolute test fails. Relative to two trillion, it is about one part in ten to the sixteenth.
+- 16.3 The parity test, Deep: **A**. Missing values must sit in the same cells, whatever the tolerance. The second values are the same double, written two ways.

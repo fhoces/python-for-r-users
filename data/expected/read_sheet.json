@@ -1,0 +1,33 @@
+{
+ "summary": {
+  "shape": [
+   12,
+   28
+  ],
+  "columns_last": "AB",
+  "cells": {
+   "A2": "Income tax block (synthetic, course data)",
+   "AB2": "note: this sheet is 28 columns wide",
+   "B4": 2018,
+   "B6": " 97.293 ",
+   "E6": null,
+   "B7": 43465.0,
+   "C7": true,
+   "B12": 12345.678
+  }
+ },
+ "data_sec_all": {
+  "shape": [
+   209,
+   31
+  ],
+  "columns_last": "AE",
+  "cells": {
+   "A4": "year",
+   "AE4": "economic_income",
+   "A5": 2019,
+   "B5": "marlo-zanderfell",
+   "C209": null
+  }
+ }
+}

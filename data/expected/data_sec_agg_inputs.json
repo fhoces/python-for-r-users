@@ -1,0 +1,34 @@
+{
+ "exclude_ids": [
+  "soren-oakhurst"
+ ],
+ "cols": [
+  "forbes_worth",
+  "forbes_public_worth",
+  "purchase",
+  "sale",
+  "kg",
+  "kg_long",
+  "kg_short",
+  "option_profit",
+  "noneq_comp",
+  "ordinary_income",
+  "kg_taxable",
+  "dividend",
+  "fiscal_income",
+  "donation",
+  "donation_deductible",
+  "income_taxable",
+  "ca_income_tax",
+  "fed_ordinary_income_tax",
+  "fed_preferential_tax",
+  "fed_income_tax",
+  "fiscal_income_tax",
+  "sales_tax",
+  "w_txt",
+  "w_tax_ppent",
+  "w_pi",
+  "total_tax",
+  "economic_income"
+ ]
+}

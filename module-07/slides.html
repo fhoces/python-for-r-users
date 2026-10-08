@@ -336,20 +336,176 @@ diff = (both["forbes_worth_total_ours"] - both["forbes_worth_total_key"]).abs()
 &lt;a href="#check-detail" class="nav-btn"&gt;The real comparison →&lt;/a&gt;
 
 ---
+class: center, middle, inverse
+
+# Part 2: An R Pipeline and Its Python Twin
+
+The paper's second step, the public workbook to every exported number, in both languages
+
+---
+name: twin-main
+
+# Function by Function, File by File
+
+`bsz-analysis/py/` holds one Python file per R file, **with the same function names**:
+
+| R file | Python twin | What it does |
+|---|---|---|
+| `R/ingest_excel.R` | `py/ingest_excel.py` | `read_sheet()`: a sheet by position |
+| `R/excel_cells.R` | `py/excel_cells.py` | `xls_cell()`, `xls_cells_row()`: cells as numbers |
+| `R/workbook_db.R` | `py/workbook_db.py` | load two sheets into SQLite, run the shared `.sql` files |
+| `R/compute_*.R`, `R/tables.R`, `R/figures.R` | `py/compute_*.py`, ... | every computation; the **data** behind each table and figure |
+| `_targets.R` | `py/run_export.py` | run it all, write `export/py/` |
+
+--
+
+.small[
+- **Mirror, do not redesign.** Same column names and order; R's named list becomes a dict; spreadsheet quirks the R code reproduces are reproduced again. The twin exists to be compared.
+- **Keep the R index in a comment.** A 2018-based panel's 2021 slot is `x[4]` in R and `x[3]` in numpy: `# R: anchor_i is a + 1`.
+- **Say what is not twinned**: gt and ggplot styling, the report's code listings. The numbers behind them are twinned.
+- **Varying literals in one file**: `vintage.py` / `R/vintage.R`, switched by the `BSZ_VINTAGE` environment variable.
+]
+
+---
+name: openpyxl-main
+
+# openpyxl: Reading a Sheet the Way readxl Does
+
+```python
+@lru_cache(maxsize=4)
+def _workbook(path):
+    # data_only: the cached values of formula cells, as readxl reads them.
+*   return openpyxl.load_workbook(path, data_only=True, read_only=True)
+
+def sheet_grid(path, sheet):
+    ws = _workbook(str(path))[sheet]
+    rows = []
+*   for row in ws.iter_rows(values_only=True):
+*       rows.append(tuple(excel_serial(v) if isinstance(v, datetime.datetime) else v
+                          for v in row))
+    # readxl drops trailing empty rows and columns.
+*   while rows and all(v is None for v in rows[-1]):
+        rows.pop()
+    ...
+```
+
+.small[
+- **`data_only=True`**: the number Excel last computed, not `"=SUM(B4:B9)"`. A file no program ever calculated has no cached values (you get `None`).
+- **Positional frame**: columns `A, B, ..., Z, AA, AB` and `df.index = range(1, n + 1)`, so `df.at[16, "G"]` is G16, like R's `df$G[16]`.
+- **readxl's habits**: trailing empty rows dropped (a formatted empty cell makes openpyxl report more rows); a date becomes its serial number (2018-12-31 is 43465).
+- **Last digit**: readxl keeps the 17-digit text and R parses it; openpyxl uses Python's correctly rounded `float()`. Gaps of about 1e-16.
+]
+
+---
+
+# A Cell as R's `as.numeric()` Sees It
+
+.pull-left[
+```python
+def to_num(v):
+    """R's suppressWarnings(as.numeric(v))"""
+*   if v is None or isinstance(v, bool):
+        return math.nan
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip()
+*   if "_" in s:  # float() reads "1_000";
+*       return math.nan  # as.numeric() does not
+    try:
+        return float(s)
+    except ValueError:
+        return math.nan
+```
+]
+
+.pull-right[
+.small[
+| Cell | R | `float()` | `to_num()` |
+|---|---|---|---|
+| `" 97.293 "` | 97.293 | 97.293 | 97.293 |
+| `"1_000"` | NA | 1000.0 | NaN |
+| `"n/a"` | NA | error | NaN |
+| a `TRUE` cell | NA | 1.0 | NaN |
+| empty | NA | error | NaN |
+]
+
+R reads a mixed column as text, so a `TRUE` cell arrives as `"TRUE"` and becomes `NA`.
+`xls_cell(df, "G16")` splits the address with `^([A-Z]+)([0-9]+)$` and returns NaN
+outside the sheet, as `df$G[999]` is `NA` in R.
+]
+
+---
+name: idioms-main
+
+# pandas Twins of the R Idioms (Drill 7)
+
+```python
+def compute_data_sec_agg(data_sec_all, exclude_ids, cols):
+*   d = data_sec_all[~data_sec_all["forbes_id"].isin(list(exclude_ids))]       # !%in%
+*   d = d[~d.duplicated(subset=["year", "forbes_id", "forbes_worth"], keep="first")]
+    g = d.groupby("year", sort=True)
+*   out = g[list(cols)].sum() / 1000          # sum(x, na.rm = TRUE): all-NaN gives 0
+*   out.insert(0, "n", g.size())              # n(): rows, not non-missing values
+    return out.reset_index()
+```
+
+.small[
+| R | Python | The trap |
+|---|---|---|
+| `!duplicated(pick(a, b, c))` | `~df.duplicated(subset=[...])` | `drop_duplicates()` with no subset compares every column |
+| `n()` | `.size()` | `.count()` skips NaN (one kept row has no worth) |
+| `sum(x, na.rm = TRUE)` | `.sum()` or `np.nansum()` | `.sum(min_count=1)` and `np.sum` give NaN |
+| `c(x[-1], 0)` | `np.append(x[1:], 0)` | Python's `x[-1]` is the **last** element |
+| `seq(0, 0.2, by = 0.001)` | `0 + np.arange(n + 1) * 0.001` | `np.arange(0, 0.2, 0.001)` has no 0.2: 200 values, not 201 |
+]
+
+---
+name: parity-main
+
+# The Parity Test: Relative Tolerance, Strict on Everything Else
+
+```r
+# condensed from compare_parity_frames() in tests/testthat/helper-py-parity.R
+if (!identical(names(r), names(py))) problems &lt;- c(problems, "columns differ")
+if (nrow(r) != nrow(py)) problems &lt;- c(problems, "rows differ")
+...
+* if (!identical(is.na(a), is.na(b))) { problems &lt;- c(problems, "missing values differ"); next }
+  d &lt;- abs(a - b)[!is.na(a)]
+* rel &lt;- d / pmax(1, abs(a[!is.na(a)]))
+* if (any(rel &gt; PY_PARITY_TOL)) problems &lt;- c(problems, "max rel diff above 1e-9")
+```
+
+.small[
+- **Relative**: one unit in the last place grows with the number. At 2e12 it is about 2e-4, so an absolute 1e-9 fails on pure rounding.
+- **`max(1, |r|)` floor**: a check that should be 0 and holds 1e-13 would turn a 3e-16 gap into a 0.3% "difference".
+- **1e-9**: real gaps are about 1e-16 (17-digit parsing, R's two-pass `mean()`, numpy's pairwise sums); the paper prints to 1e-3.
+- **Strict elsewhere**: names, row counts, missing cells and text must match; a Python file with no R counterpart fails.
+- **Skips, never fails**, when `export/py/` is absent or from the other vintage. Result on the real run: 50 outputs, 53,855 numbers, largest gap 5e-15 relative.
+]
+
+&lt;a href="#parity-detail" class="nav-btn"&gt;The real comparison →&lt;/a&gt;
+
+---
 
 # The Drills
 
+.small[
 | Drill | You write | Graded on |
 |---|---|---|
 | Q1 | `load_csv(con, csv_path, table, columns, index_on, chunksize)` | rows, NULL counts, distinct values (trimming), sums, types, indexes |
 | Q2 | `run_and_export(con, sql_file, tables, out_dir, order_by)` | byte-identical CSVs; a newest-first re-export proves the sort is yours |
 | Q3 | `compare(ours, key, key_cols, num_cols, tol)` | a pretend authors' sheet: 5 dates short, one cell off by 1e-9, one by 0.25 |
 | Q4 | `parity(dir_a, dir_b, tables, tol)` | an R-style export (17 digits) passes; one value moved by 1e-6 fails |
+| Q5 | `read_sheet(path, sheet)` | shape, letters A to AB, index from 1, a date as 43465.0 |
+| Q6 | `xls_cell(df, addr)` | 18 cells: text numbers, `"1_000"`, `"n/a"`, `TRUE`, outside the sheet |
+| Q7 | `compute_data_sec_agg(data_sec_all, exclude_ids, cols)` | the real SQL file's result, 1e-9 relative |
+| Q8 | `parity_rel(dir_r, dir_py, tol)` | rounding noise at 2e12 and near 0 passes; four real problems fail |
+]
 
 ```bash
 python data/build_rtb_sample.py                  # once: data/*.csv + data/expected/
-python module-07/check.py                        # exercise.py as delivered: 0 of 4
-python module-07/check.py module-07/solution.py  # the reference: 4 of 4
+python module-07/check.py                        # exercise.py as delivered: 0 of 8
+python module-07/check.py module-07/solution.py  # the reference: 8 of 8
 ```
 
 Then the audio lesson (`module-07/lesson/`), the walking quiz (`module-07/quiz/`), and the
@@ -360,21 +516,19 @@ class: inverse
 
 # The Key Takeaways
 
-&lt;br&gt;
-
 ### 1. Own your NULLs: read as text, strip, turn `""` into `None`, bind with `?`.
 
 --
-
-&lt;br&gt;
 
 ### 2. `executescript` for a trusted file of statements; sort every export by a key and print floats with `repr()`.
 
 --
 
-&lt;br&gt;
-
 ### 3. Check by aligning on keys, with a tolerance for numbers and none for counts, and let the exit code carry the verdict.
+
+--
+
+### 4. A twin mirrors its R file function by function, and parity is strict on names, rows, NAs and text, relative on numbers.
 
 ---
 
@@ -430,6 +584,43 @@ Condensed from the real file, which also handles double-quoted and backtick-quot
 A `;` ends a statement only in the `code` state, never inside a comment or a string.
 
 &lt;a href="#r-main" class="nav-btn"&gt;← back&lt;/a&gt;
+
+---
+name: parity-detail
+
+# Backup: `compare_parity_frames()` in `helper-py-parity.R`
+
+.small[
+```r
+for (col in names(r)) {
+  a &lt;- r[[col]]; b &lt;- py[[col]]
+  if (is.factor(a)) a &lt;- as.character(a)
+  if (inherits(a, "Date")) { a &lt;- as.character(a); b &lt;- as.character(b) }
+  if (is.numeric(a) &amp;&amp; !is.logical(a)) {
+    b &lt;- suppressWarnings(as.numeric(b))
+    if (!identical(is.na(a), is.na(b))) {
+      problems &lt;- c(problems, paste0(col, ": missing values differ"))
+      next
+    }
+    ok &lt;- !is.na(a)
+    same_inf &lt;- is.infinite(a) &amp; is.infinite(b) &amp; sign(a) == sign(b)
+    d &lt;- ifelse(same_inf, 0, abs(a - b))[ok]
+    rel &lt;- d / pmax(1, abs(a[ok]))
+    n_num &lt;- n_num + sum(ok)
+    if (length(d)) {
+      max_abs &lt;- max(max_abs, d); max_rel &lt;- max(max_rel, rel)
+      if (any(rel &gt; PY_PARITY_TOL)) problems &lt;- c(problems, sprintf("%s: max rel diff %.3g", col, max(rel)))
+    }
+  } else {
+    if (!identical(as.character(a), as.character(b))) problems &lt;- c(problems, paste0(col, ": text differs"))
+  }
+}
+```
+]
+
+Column type comes from the R side: a column R holds as numbers is compared as numbers, anything else as text.
+
+&lt;a href="#parity-main" class="nav-btn"&gt;← back&lt;/a&gt;
 
 ---
 name: check-detail
