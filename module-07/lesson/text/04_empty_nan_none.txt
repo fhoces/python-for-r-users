@@ -1,0 +1,17 @@
+Empty, N a N, and None.
+
+Missing values cause more silent errors in a pipeline than anything else, so this section is about one question: when a field in the raw file is empty, what ends up in the database?
+
+The raw CSVs write a missing value as an empty field: two commas with nothing between them. There are three ways that can reach SQLite.
+
+The first way is to do nothing. The C S V module hands you an empty string, and if you insert that, SQLite stores an empty string. An empty string is a value, not a null. Count of that column counts it. A sum over a numeric column either fails or treats it as zero. And a later check, is null, will not find it. The table looks complete, and it is wrong.
+
+The second way is pandas' defaults. Read csv turns an empty field into N a N, not a number, even in a text column. When you insert a N a N into SQLite through Python, it arrives as null, which sounds fine. But pandas also turns several strings into N a N by default: N A, null, N a N, and a few others. A person whose name happened to be the string null would vanish. And a text column now holds a mix of strings and floats, which bites you later in comparisons.
+
+The third way is the one the real loader uses, and the one the drill asks for. Read every field as text, with nothing converted. Strip the spaces. Then, if the field is empty, replace it with None, Python's own null. Otherwise convert it to the column's type: a float for money, an integer for ids, the string itself for text. None is what the SQLite driver turns into a real null. So the database gets nulls exactly where the file had empty fields, and nowhere else.
+
+Why does this matter so much? Because SQL's aggregates skip null. Sum skips it, average skips it, count of a column skips it. That is the same behaviour as R's sum with n a dot r m equals true. When the loader gets nulls right, the SQL and the R agree. When it gets them wrong, they disagree in ways that are very hard to trace back.
+
+Now the strip. R's read csv in the readr package trims leading and trailing spaces from every field by default. Python's readers do not. The real Forbes file has many source values that end with a space. Software, with a trailing space, and software, without one, are two different strings. Group by source and you get two groups where R gets one. The real loader calls strip, with a space and a tab as the characters to remove, on every field, to match readr exactly. The synthetic file in this module has the same trailing spaces on purpose, and the grader counts distinct sources, so a loader that forgets to strip fails drill one.
+
+In R terms: read csv with trim w s true and n a equal to an empty string. In Python you write those two decisions out by hand, field by field.

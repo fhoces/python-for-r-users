@@ -1,0 +1,15 @@
+Putting rows into SQLite.
+
+With the rows converted, the loader sends them to the database. Three habits matter here: parameter binding, indexes after the load, and a final count.
+
+First, parameter binding. The loader builds the insert statement once. Insert into the table name, the list of column names, values, and then a question mark for each column. The question marks are placeholders. The actual values travel separately, as a list of rows, in one call to execute many. SQLite fills each placeholder from each row, and it handles the quoting and the types itself. None becomes null. A float stays a float. A name with an apostrophe stays a name.
+
+The alternative is string formatting: building the values into the SQL text with an f string. It looks shorter, and it breaks in three ways. A name with an apostrophe ends the string early and the statement fails. None turns into the word None, stored as text. And any value that comes from outside your control can inject its own SQL. Parameter binding avoids all three, and it is faster, because SQLite parses the statement once and reuses it for every row. In R, the matching tools are the params argument of D B I db execute, or D B I db append table, which binds for you.
+
+There is also pandas' to s q l, which writes a whole data frame in one line. It is convenient, and for small tables it is fine. The real loader does not use it, because it wants exact control over column types and nulls, and to s q l makes its own choices about both.
+
+Second, indexes after the load. The loader creates two indexes on the Forbes table, one on the date and one on the forbes id, because the SQL filters and joins on those columns. It creates them after every row is in, not before. An index has to be updated on every insert. Building it once over finished data is much faster than maintaining it through six million inserts. The same reasoning explains two pragma lines at the top: journal mode off, and synchronous off. They tell SQLite not to protect the file against a crash during the load. That is a reasonable trade for a database that can be rebuilt from the raw files in fifteen seconds, and an unreasonable one for any database that holds the only copy of something.
+
+Third, the final count. After each loader finishes, the main function runs select count star on the new table and compares it with the number of rows the loader says it inserted. If they differ, it raises. It also times each loader and prints the row count and the seconds. Neither check is sophisticated. Both catch the failures that matter: a load that stopped halfway, a batch that was never sent, a table that was dropped and not refilled.
+
+Put together: build the statement once with placeholders, send batches with execute many, create indexes at the end, and count what you loaded. That is drill one.

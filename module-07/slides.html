@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Module 7: Loading, Running SQL and Checking a Reproduction</title>
+    <meta charset="utf-8" />
+    <script src="slides_files/header-attrs-2.29/header-attrs.js"></script>
+    <link href="slides_files/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="slides_files/remark-css-0.0.1/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Module 7: Loading, Running SQL and Checking a Reproduction
+]
+.subtitle[
+## The Python around one SQL file in a real replication
+]
+
+---
+
+
+&lt;style type="text/css"&gt;
+.remark-code, .remark-inline-code { font-size: 80%; }
+.remark-slide-content { padding: 1em 2em; }
+.small { font-size: 80%; }
+.nav-btn {
+  position: absolute;
+  bottom: 12px;
+  left: 40px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn:hover { background: #c5cae9; }
+.nav-btn-br {
+  position: absolute;
+  bottom: 12px;
+  right: 70px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn-br:hover { background: #c5cae9; }
+.inline-btn {
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-decoration: none;
+  color: #1a237e;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.inline-btn:hover { background: #c5cae9; }
+&lt;/style&gt;
+
+# Course Map
+
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;#&lt;/th&gt;&lt;th&gt;Module&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;&lt;a href="../module-01/slides.html"&gt;Python for R Users&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;&lt;a href="../module-02/slides.html"&gt;pandas basics&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;&lt;a href="../module-03/slides.html"&gt;Joins, merges, group-by recipes&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;&lt;a href="../module-04/slides.html"&gt;Regression and A/B tests with statsmodels&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;&lt;a href="../module-05/slides.html"&gt;End-to-end interview scenario&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;6&lt;/td&gt;&lt;td&gt;&lt;a href="../module-06/slides.html"&gt;Reading and Reviewing Someone Else's Python&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;b&gt;7&lt;/b&gt;&lt;/td&gt;&lt;td&gt;&lt;b&gt;Loading, Running SQL and Checking a Reproduction&lt;/b&gt; &lt;i&gt;(you are here)&lt;/i&gt;&lt;/td&gt;&lt;td&gt;← current&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+---
+
+# Why This Module Breaks the Pattern
+
+Module 6 read a codebase you did not write. This one is about the **Python around a SQL
+file** in a real reproduction: [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40),
+folder `bsz-analysis/py/`, plus its R twin `R/run_sql.R`.
+
+--
+
+The raw data there (daily Forbes billionaire snapshots, about 6 million rows) are
+confidential. The drills run on a **synthetic panel in the same shape**:
+`python data/build_rtb_sample.py` (60 invented people, random-walk fortunes).
+
+--
+
+The SQL itself is a black box here: it turns one big table into four smaller ones.
+(The SQL course, sql-industry-prep module 6, walks through it.)
+
+--
+
+The point: **plumbing is where silent errors live**. An empty string that should have
+been NULL, a float rounded on the way out, rows that came back in a different order.
+
+---
+
+# The Pipeline, File by File
+
+| File | Job | R mental model | Drill |
+|---|---|---|---|
+| `bundle_paths.py` | where every file lives; useful errors | `here::here()`, `Sys.getenv()` | |
+| `load_bundle.py` | raw CSV → SQLite, in batches, NULLs explicit | `read_csv_chunked()` + `dbAppendTable()` | Q1 |
+| `run_sql.py` | run the shared `.sql`; export sorted CSVs | `dbExecute()` + `dbGetQuery()` | Q2 |
+| `check_rtb_ca.py` | align on keys, compare with tolerance, exit code | `full_join()` + `all.equal()` | Q3, Q4 |
+| `R/run_sql.R` | the same `.sql` from R, for the parity check | | |
+
+--
+
+**One SQL file, two languages.** If Python's and R's exports agree, any bug left is in the
+SQL or the data, not in the plumbing. In the real run they agreed to exactly zero.
+
+---
+
+# `bundle_paths.py`: One Place That Knows Where Things Are
+
+```python
+*BSZ_DIR = Path(__file__).resolve().parent.parent   # the folder holding py/
+
+def bundle_dir(must_exist=True):
+*   raw = os.environ.get(ENV_VAR, "")                # Sys.getenv("BSZ_BUNDLE_DIR", "")
+    path = Path(raw) if raw else DEFAULT_BUNDLE_DIR
+    if must_exist and not path.is_dir():
+*       raise FileNotFoundError(
+            f"Author bundle not found at {path}. It is confidential and not in git; "
+            f"place it there or set the {ENV_VAR} environment variable to its root."
+        )
+    return path
+
+def sqlite_path():
+*   return BSZ_DIR / "data-raw" / "bundle.sqlite"   # file.path(), but an object
+```
+
+.small[
+- **`Path` and `/`**: the operator joins path pieces; the object has `.exists()`, `.is_dir()`, `.rglob()`, `.read_text()`.
+- **An env var with a default** lets a co-author or a worktree point elsewhere without editing code.
+- **The error names the path it tried and the fix.** `find_in_bundle()` also insists on exactly one match, so a duplicated file fails loudly.
+]
+
+---
+name: load-main
+
+# `load_bundle.py`: Reading a Big File in Pieces
+
+```python
+with open(path, newline="", encoding="utf-8") as f:
+    reader = csv.reader(f)
+    header = next(reader)
+*   if header != names:
+        raise ValueError(f"Unexpected header in {path.name}: {header}")
+    batch = []
+    for row in reader:
+        batch.append([cast(v) for cast, v in zip(casts, row)])
+*       if len(batch) &gt;= BATCH:                    # BATCH = 100_000
+*           con.executemany(insert, batch)
+            n += len(batch)
+            batch = []
+*   con.executemany(insert, batch)                 # the leftover rows
+    n += len(batch)
+```
+
+.small[
+- **Memory holds one batch**, whatever the file size (about 5.9 million rows in the real file).
+- **pandas form (drill 1):** `pd.read_csv(path, dtype=str, keep_default_na=False, chunksize=5000)` returns an iterator of DataFrames. R: `readr::read_csv_chunked(path, callback)`.
+- **Check the header**: a column inserted in the middle of a new file version fails here, not silently later.
+]
+
+---
+
+# Empty String, NaN and None: What Reaches SQLite
+
+The bundle writes a missing value as an empty field. Three ways it can arrive:
+
+.small[
+| You read with | An empty field becomes | In SQLite |
+|---|---|---|
+| `csv.reader`, no conversion | `""` | the text `''`: **not NULL**, counted by `COUNT(col)` |
+| `pd.read_csv` defaults | `NaN` | NULL, but `"NA"`, `"null"`, `"NaN"` also become NaN |
+| `dtype=str, keep_default_na=False`, then `""` → `None` | `None` | NULL, and nothing else touched |
+]
+
+--
+
+```python
+def _text(v):
+*   v = v.strip(" \t")          # readr::read_csv trims (trim_ws = TRUE); Python does not
+*   return v if v != "" else None
+
+def _real(v):
+    v = v.strip(" \t")
+    return float(v) if v != "" else None
+```
+
+Many `source` values in the real file end in a space: without the strip, "software" and
+"software " are two industries. NULLs matter because SQL aggregates skip them, like R's
+`na.rm = TRUE`.
+
+---
+
+# Parameter Binding, and Indexes After the Load
+
+```python
+insert = (
+    f"INSERT INTO rtb_all_combined ({', '.join(names)}) "
+*   f"VALUES ({', '.join('?' * len(names))})"          # one ? per column
+)
+*con.executemany(insert, batch)                         # values travel separately
+...
+# Indexes after the load: building them once is faster than
+# updating them on every insert.
+*con.execute("CREATE INDEX idx_rtb_all_combined_date ON rtb_all_combined (date)")
+*con.execute("CREATE INDEX idx_rtb_all_combined_id ON rtb_all_combined (forbes_id)")
+```
+
+.small[
+- **`?` placeholders, not f-strings in `VALUES`.** Formatting values into SQL breaks on `O'Dunmore`, turns `None` into the text `'None'`, and allows injection. SQLite also parses the statement once. R: `dbExecute(con, sql, params = ...)`, `dbAppendTable()`.
+- **Indexes at the end**, on the columns the SQL filters and joins on. `PRAGMA journal_mode = OFF` and `synchronous = OFF` trade crash safety for speed: fine for a rebuildable file.
+- **Then count**: `main()` compares `SELECT COUNT(*)` with the rows inserted and raises if they differ, and prints the seconds each loader took.
+]
+
+---
+
+# `run_sql.py`: `executescript` Versus `execute`
+
+```python
+def run_sql_file(con, sql_file):
+*   con.executescript(Path(sql_file).read_text(encoding="utf-8"))
+    con.commit()
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+*   p.add_argument("sql_file")                                   # positional
+*   p.add_argument("--export", nargs="*", default=[], metavar="TABLE")
+    p.add_argument("--db", default=None, help="SQLite file (default data-raw/bundle.sqlite)")
+    p.add_argument("--out", default=None, help="export directory (default data-raw/sql-out/py)")
+*   a = p.parse_args(argv)                                       # None = the real command line
+```
+
+.small[
+- **`execute`** runs exactly one statement ("You can only execute one statement at a time"). **`executescript`** runs a whole file in order, stops at the first error (earlier statements stay done), and commits first.
+- `executescript` takes **no parameters**: trusted files only, never user input.
+- **R has no `executescript`**: `DBI::dbExecute()` runs one statement, so `run_sql.R` splits the file itself.
+- **`argparse`**: `main(argv=None)` lets a test pass a list instead of a shell command line. R: `commandArgs(trailingOnly = TRUE)` and parse by hand.
+]
+
+---
+name: export-main
+
+# Exports That Never Change by Accident
+
+```python
+EXPORT_ORDER = {                                 # keep in step with R/run_sql.R
+*   "rtb_ca_eoy": "date, forbes_worth DESC, forbes_id",
+    "rtb_ca_aggregate": "date",
+}
+def _fmt(v):
+    if v is None:
+*       return ""                                # NULL is an empty field
+    if isinstance(v, float):
+*       return repr(v)                           # shortest text that reads back exactly
+    return str(v)
+
+def export_table(con, table, out_dir):
+    ...
+*   rows = con.execute(f"SELECT * FROM {table} ORDER BY {order}").fetchall()
+    with open(path, "w", newline="", encoding="utf-8") as f:
+*       w = csv.writer(f, lineterminator="\n")
+```
+
+.small[
+- **Always sort by a key, with a tie-breaker** (`forbes_id`). A table has no guaranteed row order.
+- **`repr(0.1 + 0.2)` is `'0.30000000000000004'`**; `f"{x:.6f}"` would lose digits, more digits would churn the file.
+- Goal: two runs, two machines, two languages, **byte-identical files**. Drill 2 is graded byte by byte.
+]
+
+---
+name: r-main
+
+# The R Twin: What R Has to Build by Hand
+
+```r
+run_sql_file &lt;- function(con, sql_file) {
+  sql &lt;- paste(readLines(sql_file, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+* stmts &lt;- sql_split_statements(sql)        # a state machine: ; only when it is code
+* for (s in stmts) DBI::dbExecute(con, s)   # one statement per call
+  invisible(length(stmts))
+}
+.format_double &lt;- function(x) {              # R's stand-in for Python's repr()
+  ...
+*   s &lt;- sprintf("%.15g", v)
+*   if (as.numeric(s) != v) s &lt;- sprintf("%.16g", v)
+*   if (as.numeric(s) != v) s &lt;- sprintf("%.17g", v)
+    if (!grepl("[.eEn]", s)) s &lt;- paste0(s, ".0")
+```
+
+.small[
+- R's text-to-number parser is not always correctly rounded in the 16th digit, so R sometimes writes **17 digits where Python writes 16**: same doubles, different text. Hence a parity check that **parses numbers** (drill 4).
+- `if (sys.nframe() == 0L &amp;&amp; !interactive())` guards the entry point: R's `if __name__ == "__main__":`.
+]
+
+&lt;a href="#r-detail" class="nav-btn"&gt;The statement splitter →&lt;/a&gt;
+
+---
+name: check-main
+
+# `check_rtb_ca.py`: Align on Keys, Then Compare
+
+The real checker keys dicts on `forbes_id` / `industries` / `date`. The pandas form, drill 3:
+
+```python
+m = ours.merge(key, on=["date"], how="outer",
+*              suffixes=("_ours", "_key"), indicator=True)
+*m["_merge"].value_counts()          # both / left_only / right_only
+both = m[m["_merge"] == "both"]
+diff = (both["forbes_worth_total_ours"] - both["forbes_worth_total_key"]).abs()
+*cells_off = int((diff &gt; 1e-6).sum())
+```
+
+--
+
+.small[
+- **Never compare row 1 with row 1**: one extra row shifts every later one. R: `full_join()` plus `anti_join()` both ways.
+- **Rows on one side only are not equal**: dates only in ours are reported, not failed (a newer data file has more days); dates only in the key fail.
+- **Tolerance**: counts and text exactly; numbers within `1e-6` (answer keys), `1e-9` (R vs Python), `0.005` (cells typed with 2 decimals). Summation order changes last digits. A missing person changes a count, which has no tolerance. R: `max(abs(a - b)) &lt;= 1e-6` (`all.equal()` compares a mean relative difference).
+- **Exit code**: `return 1 if failures else 0`, then `sys.exit(main())`. R: `quit(status = 1)`.
+]
+
+&lt;a href="#check-detail" class="nav-btn"&gt;The real comparison →&lt;/a&gt;
+
+---
+
+# The Drills
+
+| Drill | You write | Graded on |
+|---|---|---|
+| Q1 | `load_csv(con, csv_path, table, columns, index_on, chunksize)` | rows, NULL counts, distinct values (trimming), sums, types, indexes |
+| Q2 | `run_and_export(con, sql_file, tables, out_dir, order_by)` | byte-identical CSVs; a newest-first re-export proves the sort is yours |
+| Q3 | `compare(ours, key, key_cols, num_cols, tol)` | a pretend authors' sheet: 5 dates short, one cell off by 1e-9, one by 0.25 |
+| Q4 | `parity(dir_a, dir_b, tables, tol)` | an R-style export (17 digits) passes; one value moved by 1e-6 fails |
+
+```bash
+python data/build_rtb_sample.py                  # once: data/*.csv + data/expected/
+python module-07/check.py                        # exercise.py as delivered: 0 of 4
+python module-07/check.py module-07/solution.py  # the reference: 4 of 4
+```
+
+Then the audio lesson (`module-07/lesson/`), the walking quiz (`module-07/quiz/`), and the
+real files in `opa-prop40/bsz-analysis/py/`.
+
+---
+class: inverse
+
+# The Key Takeaways
+
+&lt;br&gt;
+
+### 1. Own your NULLs: read as text, strip, turn `""` into `None`, bind with `?`.
+
+--
+
+&lt;br&gt;
+
+### 2. `executescript` for a trusted file of statements; sort every export by a key and print floats with `repr()`.
+
+--
+
+&lt;br&gt;
+
+### 3. Check by aligning on keys, with a tolerance for numbers and none for counts, and let the exit code carry the verdict.
+
+---
+
+# Course Map
+
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;#&lt;/th&gt;&lt;th&gt;Module&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;&lt;a href="../module-01/slides.html"&gt;Python for R Users&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;&lt;a href="../module-02/slides.html"&gt;pandas basics&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;&lt;a href="../module-03/slides.html"&gt;Joins, merges, group-by recipes&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;&lt;a href="../module-04/slides.html"&gt;Regression and A/B tests with statsmodels&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;&lt;a href="../module-05/slides.html"&gt;End-to-end interview scenario&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;6&lt;/td&gt;&lt;td&gt;&lt;a href="../module-06/slides.html"&gt;Reading and Reviewing Someone Else's Python&lt;/a&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;Loading, Running SQL and Checking a Reproduction &lt;i&gt;(just finished)&lt;/i&gt;&lt;/td&gt;&lt;td&gt;✓ done&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+---
+class: center, middle, inverse
+
+# Backup Slides
+
+---
+name: r-detail
+
+# Backup: `sql_split_statements()` in `R/run_sql.R`
+
+.small[
+```r
+sql_split_statements &lt;- function(sql) {
+  ch &lt;- strsplit(sql, "", fixed = TRUE)[[1]]
+  n &lt;- length(ch); out &lt;- character(); state &lt;- "code"; start &lt;- 1L; has_code &lt;- FALSE; i &lt;- 1L
+  while (i &lt;= n) {
+    c1 &lt;- ch[i]; c2 &lt;- if (i &lt; n) ch[i + 1L] else ""
+    if (state == "code") {
+      if (c1 == "-" &amp;&amp; c2 == "-") { state &lt;- "line"; i &lt;- i + 1L }
+      else if (c1 == "/" &amp;&amp; c2 == "*") { state &lt;- "block"; i &lt;- i + 1L }
+      else if (c1 == "'") { state &lt;- "squote"; has_code &lt;- TRUE }
+      else if (c1 == ";") {
+        if (has_code) out &lt;- c(out, paste(ch[start:i], collapse = ""))
+        start &lt;- i + 1L; has_code &lt;- FALSE
+      } else if (!grepl("^\\s$", c1)) has_code &lt;- TRUE
+    } else if (state == "line") { if (c1 == "\n") state &lt;- "code" }
+    else if (state == "block") { if (c1 == "*" &amp;&amp; c2 == "/") { state &lt;- "code"; i &lt;- i + 1L } }
+    else if (state == "squote") { if (c1 == "'") state &lt;- "code" }
+    i &lt;- i + 1L
+  }
+  ...
+}
+```
+]
+
+Condensed from the real file, which also handles double-quoted and backtick-quoted names.
+A `;` ends a statement only in the `code` state, never inside a comment or a string.
+
+&lt;a href="#r-main" class="nav-btn"&gt;← back&lt;/a&gt;
+
+---
+name: check-detail
+
+# Backup: The Real Daily-Aggregate Comparison
+
+.small[
+```python
+def cmp_aggregate(agg, key_rows, label):
+    o = {r["date"]: r for r in agg}
+    k, dup_rows, dup_differ = {}, 0, 0
+    for r in key_rows:
+        d = _iso(r["date"])
+        if d in k:                       # a date listed twice in the key: compare the copies
+            dup_rows += 1
+            dup_differ += any(k[d][c] != r[c] for c in r if c != "date")
+        else:
+            k[d] = r
+    common = sorted(set(o) &amp; set(k))
+    maxd, n_bad, dates_bad = 0.0, 0, 0
+    for d in common:
+        bad = int(o[d]["n_billionaires"]) != int(k[d]["n_billionaires"])   # counts: exact
+        n_bad += bad
+        for c in AGG_NUM:
+            diff = abs(float(o[d][c]) - float(k[d][c]))
+            maxd = max(maxd, diff)
+            bad = bad or diff &gt; TOL                                       # numbers: tolerance
+        dates_bad += bad
+    only_o, only_k = sorted(set(o) - set(k)), sorted(set(k) - set(o))
+    ok = dates_bad == 0 and not only_k and dup_differ == 0               # extra dates in ours are fine
+```
+]
+
+&lt;a href="#check-main" class="nav-btn"&gt;← back&lt;/a&gt;
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

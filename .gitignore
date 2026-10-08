@@ -9,3 +9,4 @@ __pycache__/
 *.egg-info/
 .venv/
 .ipynb_checkpoints/
+module-07/lesson/audio/

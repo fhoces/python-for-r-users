@@ -1,0 +1,42 @@
+{
+ "parity_r": {
+  "rtb_ca_eoy": {
+   "ok": true,
+   "n": 212,
+   "max_abs_diff": 0.0,
+   "text_off": 0
+  },
+  "rtb_ca_2026_01_01_industry": {
+   "ok": true,
+   "n": 10,
+   "max_abs_diff": 0.0,
+   "text_off": 0
+  },
+  "rtb_ca_aggregate": {
+   "ok": true,
+   "n": 290,
+   "max_abs_diff": 0.0,
+   "text_off": 0
+  }
+ },
+ "parity_bad": {
+  "rtb_ca_eoy": {
+   "ok": true,
+   "n": 212,
+   "max_abs_diff": 0.0,
+   "text_off": 0
+  },
+  "rtb_ca_2026_01_01_industry": {
+   "ok": true,
+   "n": 10,
+   "max_abs_diff": 0.0,
+   "text_off": 0
+  },
+  "rtb_ca_aggregate": {
+   "ok": false,
+   "n": 290,
+   "max_abs_diff": 9.999999974752427e-07,
+   "text_off": 0
+  }
+ }
+}

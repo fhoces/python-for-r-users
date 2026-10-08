@@ -1,0 +1,15 @@
+Reading a big file in pieces.
+
+The second file, load bundle, builds the SQLite database from the raw files. One function per table, each registered in a dictionary called LOADERS. Each loader drops its table and recreates it, so the script can run again after the data change. Add a new input later, and you add one function and one dictionary entry. Nothing else moves.
+
+The big input is the Forbes file, about six million rows. Reading six million rows into memory at once works on a laptop, but it is wasteful, and it fails on bigger files. So the loader reads in pieces.
+
+The real file does it with the standard library. It opens the file and wraps it in csv dot reader, which yields one row at a time as a list of strings. It checks the header against the expected column names first, and stops with an error if they differ. Then for each row it converts the fields and appends the row to a list called batch. When the batch reaches one hundred thousand rows, it hands the whole batch to the database in one call, adds the count to a running total, and starts a new empty batch. After the loop, it sends whatever is left. Memory never holds more than one batch, whatever the size of the file.
+
+The pandas version of the same idea is read csv with a chunk size. Instead of one data frame, you get an iterator, and each step of a for loop gives you the next chunk as a data frame of, say, five thousand rows. That is what the drill asks you to write. In R, the matching tool is read csv chunked in the readr package, which calls a function of yours on each chunk.
+
+Why not just use pandas for the whole file? Two reasons, and both are about control. First, pandas guesses types, and its guesses can differ from chunk to chunk: a column that looks numeric in one chunk can contain a stray string in the next. Second, pandas has its own ideas about missing values, which the next section is about. The real loader avoids both by reading every field as text and converting it itself. The drill asks you to get the same control from pandas, by passing d type equals s t r, so every cell arrives as text, and keep default n a equals false, so pandas does not decide on its own what counts as missing.
+
+There is a third habit hidden here: check the header. A raw file's column order is part of its contract. If a new version of the file adds a column in the middle, a loader that only counts positions will put the wrong values into the wrong columns without complaint. Comparing the header to the expected list of names costs one line, and it turns a silent shift into an immediate error.
+
+So, the pattern for big inputs. Read as text, in chunks. Check the header. Convert each field yourself. Send each chunk to the database in a single call. The next two sections are about the convert step and the send step.

@@ -1,0 +1,15 @@
+Running the SQL file.
+
+The third file, run s q l, does two jobs. It runs a SQL file against the database, and it writes chosen tables out to text files. This section is about the first job and about the command line.
+
+Python's SQLite connection has two ways to run SQL. Execute runs exactly one statement. Give it two statements separated by a semicolon and it refuses, with an error saying you can only execute one statement at a time. Execute script runs a whole script: every statement in order, stopping at the first error. Statements before the error have already run, and their effects stay. It also commits any open transaction before it starts.
+
+The shared SQL file has several blocks, each one a drop table if exists followed by a create table as select. So the runner reads the file as text and passes it to execute script in one call, then commits. That is the entire function, two lines long.
+
+Execute script has one limit to remember. It cannot take parameters. There is no way to bind a value into a script. So it is for trusted files that live in the repository, never for text that comes from a user or a web form. For anything with values in it, you go back to execute or execute many with question marks.
+
+R's D B I has no execute script. D B I db execute runs one statement. So the R twin has to split the file into statements itself. It does it with a small state machine that walks through the text one character at a time and remembers whether it is inside a comment, a string, or a quoted name. A semicolon only counts as the end of a statement when it is real code, not when it sits inside a comment or a string. Then each piece goes to db execute in turn. This is a case where Python gives you in one call what R makes you build. Knowing that is useful: if you ever see a hand-written SQL splitter in Python, ask why execute script was not enough.
+
+Reading results back is the easy part. You run a select with execute, and the cursor gives you two things. Its description holds the column names. Fetch all returns the rows as a list of tuples. If you want a data frame, pandas' read s q l takes the query and the connection and returns one directly. The real runner stays with tuples, because the next step, writing files, needs exact control over how each value is printed.
+
+Last, the command line. The runner uses argparse. One positional argument, the SQL file. An option called export that takes any number of table names. Two more options, db and out, that override the default database and output folder. Parse args returns an object with one attribute per argument. The main function takes an optional list of arguments, which defaults to none, meaning the real command line. A test can pass a list instead and run the whole script without a shell. R has nothing built in for this. The R twin reads command args with trailing only equals true and picks the options out by hand.

@@ -1,0 +1,11 @@
+column,type,n_rows,n_null,n_distinct,sum
+date,TEXT,16186,0,293,
+forbes_id,TEXT,16186,0,60,
+forbes_name,TEXT,16186,0,60,
+state,TEXT,16186,1465,7,
+country_citizenship,TEXT,16186,0,3,
+source,TEXT,16186,0,12,
+industries,TEXT,16186,0,9,
+forbes_worth,REAL,16186,83,15589,488410541.7
+forbes_public_worth,REAL,16186,813,14242,241743793.3
+forbes_private_worth,REAL,16186,813,14240,231445186.3

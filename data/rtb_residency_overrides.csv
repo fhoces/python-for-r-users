@@ -1,0 +1,4 @@
+forbes_id,rule,note
+wren-underhill,include,"course example: state on file is Nevada, counted as California"
+soren-driftwood,include,"course example: no state on file, counted as California"
+rhea-dunmore,exclude,"course example: state on file is California, never counted"
