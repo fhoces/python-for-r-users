@@ -4,8 +4,8 @@ Module 2: pandas Basics -- Exercise
 Run with: python module-02/exercise.py
 """
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 # Load the data
 rides   = pd.read_csv("data/rides.csv", parse_dates=["pickup_at"])

@@ -6,10 +6,10 @@ Run with: python module-04/exercise.py
 Requires: pandas, numpy, statsmodels, scipy
 """
 
-import pandas as pd
 import numpy as np
-import statsmodels.formula.api as smf
+import pandas as pd
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
 from scipy import stats
 
 rides = pd.read_csv("data/rides.csv", parse_dates=["pickup_at"])

@@ -7,8 +7,8 @@ yourself BEFORE reading the answer.
 Run with: python module-05/exercise.py
 """
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import statsmodels.formula.api as smf
 from scipy import stats
 

@@ -4,8 +4,8 @@ Module 3: Joins, Merges, Group-By Recipes -- Exercise
 Run with: python module-03/exercise.py
 """
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 rides   = pd.read_csv("data/rides.csv", parse_dates=["pickup_at"])
 drivers = pd.read_csv("data/drivers.csv", parse_dates=["signup_date"])

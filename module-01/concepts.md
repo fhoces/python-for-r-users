@@ -190,14 +190,22 @@ direct equivalent — sort of like `withr::with_*` from the withr package).
 ## Imports
 
 ```python
-import pandas as pd                # whole module, alias as pd
+import os                          # standard library first
+
 import numpy as np
+import pandas as pd                # whole module, alias as pd
 from statsmodels.formula.api import ols    # specific name from a module
 ```
 
 R equivalent: `library(...)`, but Python is **explicit** — you have to
 name the module every time you use a function from it (`pd.read_csv`,
 not `read_csv`). This is verbose but makes scripts easier to read.
+
+**Import order is a convention.** Standard-library modules (`os`, `csv`,
+`pathlib`) come first, then a blank line, then third-party packages
+(`numpy`, `pandas`, `statsmodels`), alphabetical within each group. Linters
+such as Ruff flag any other order (rule I001), and "Organize imports" in
+the editor fixes it. The order does not change what the code does.
 
 ## The 10 things that trip up R users
 
