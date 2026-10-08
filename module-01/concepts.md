@@ -205,7 +205,10 @@ not `read_csv`). This is verbose but makes scripts easier to read.
 `pathlib`) come first, then a blank line, then third-party packages
 (`numpy`, `pandas`, `statsmodels`), alphabetical within each group. Linters
 such as Ruff flag any other order (rule I001), and "Organize imports" in
-the editor fixes it. The order does not change what the code does.
+the editor fixes it. When a `def` or `class` follows the imports, leave two
+blank lines before it (PEP 8 puts two blank lines around every top-level
+function). Ruff flags a single blank line under the same rule. Neither the order
+nor the spacing changes what the code does.
 
 ## The 10 things that trip up R users
 

@@ -4,8 +4,10 @@ Module 1: Python for R Users -- Exercise
 Run with: python module-01/exercise.py
 """
 
-import pandas as pd
 import os
+
+import pandas as pd
+
 
 def mi_per_h(d, m): 
     return d /(m/60)
