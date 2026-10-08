@@ -17,6 +17,16 @@ without thinking about syntax.
 | 6 | Reading and Reviewing Someone Else's Python | Reading an unfamiliar codebase: imports → dependency graph → entry point, dataclasses, `frozen`/`replace`, relative imports, underscore convention | "Walk me through this code," find the bug, review a PR |
 | 7 | Loading, Running SQL and Checking a Reproduction | Chunked `read_csv` with `dtype=str, keep_default_na=False` and explicit `""` to `None`; `executemany` with `?` placeholders; indexes after the load; `executescript` vs `execute`; `argparse`; deterministic CSV exports (sort keys, `repr` floats); `merge(indicator=True)`; tolerance vs exact equality; exit codes; the R twin (`DBI::dbExecute`, `read_csv_chunked`, `all.equal`); part 2: a Python twin of an R pipeline, function by function (openpyxl `data_only` reads, a positional frame indexed like the sheet, R's `as.numeric()` on a cell, `isin` / `duplicated(subset=...)` / `size()` / `sum()` as twins of `%in%` / `duplicated()` / `n()` / `sum(na.rm = TRUE)`, the parity test at `1e-9 * max(1, |r|)`) | Write the eight drill functions until `check.py` passes all eight |
 
+## Prerequisites
+
+Modules 1 to 6 need no SQL. Module 7 pairs with module 6 of the SQL course
+([sql-industry-prep](https://github.com/fhoces/sql-industry-prep)). Both are
+built on the same real files from `opa-prop40`, `01_rtb_ca.sql` and
+`02_data_sec_agg.sql`. The SQL module teaches what those queries compute.
+Module 7 treats them as a black box and drills the Python around them, so do
+SQL module 6 first. Module 7 also assumes modules 2 and 3 (pandas basics and
+`merge`).
+
 ## Two design choices
 
 1. **pandas, not polars.** pandas is what most tech-company DS interviewers expect,
