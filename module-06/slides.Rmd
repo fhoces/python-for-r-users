@@ -27,6 +27,7 @@ output:
 <tr><td>4</td><td><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></td><td>✓ done</td></tr>
 <tr><td>5</td><td><a href="../module-05/slides.html">End-to-end interview scenario</a></td><td>✓ done</td></tr>
 <tr><td><b>6</b></td><td><b>Reading and Reviewing Someone Else's Python</b> <i>(you are here)</i></td><td>← current</td></tr>
+<tr><td>7</td><td><a href="../module-07/slides.html">Loading, Running SQL and Checking a Reproduction</a></td><td>✓ done</td></tr>
 </table>
 
 ---
@@ -387,7 +388,8 @@ class: inverse
 <tr><td>4</td><td><a href="../module-04/slides.html">Regression and A/B tests with statsmodels</a></td><td>✓ done</td></tr>
 <tr><td>5</td><td><a href="../module-05/slides.html">End-to-end interview scenario</a></td><td>✓ done</td></tr>
 <tr><td>6</td><td>Reading and Reviewing Someone Else's Python <i>(just finished)</i></td><td>✓ done</td></tr>
+<tr><td><b>7</b></td><td><b><a href="../module-07/slides.html">Loading, Running SQL and Checking a Reproduction</a></b></td><td>next</td></tr>
 </table>
 
-**You're done.** Next time you're handed an unfamiliar file in an
+**Next: module 7**, the Python around a SQL file in a real reproduction. And next time you're handed an unfamiliar file in an
 interview: imports first, leaves first, find the verb function.
