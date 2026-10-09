@@ -310,6 +310,29 @@ rates = np.minimum(0 + np.arange(n + 1) * rate_step, max_rate)
 
 The exercise file drills the summary-row pattern and the numpy shift (Q6).
 
+### Running the real thing: the explorer's grid (exercise Q7)
+
+Q7 rebuilds the repo explorer's whole grid with the repo's own function,
+`score_tab5_cell()` (Module 1's Q7 walks through it). The explorer has six
+dials. `itertools.product` over their levels gives every combination, 1,920
+settings. It varies the last dial fastest. R's `expand.grid()` varies the
+first one fastest, which is why the repo's `build_site_grid()` notes that the
+R side reverses the order to match.
+
+Each setting becomes one dict, and `pd.DataFrame(rows)` stacks them. This is
+R's `bind_rows()` over a list. The rest of the drill is Module 2 pandas on a
+real table:
+
+- `assign()` with a `lambda` that refers to a column made in the same call.
+- A boolean filter built with `&` and `~`, the base scenario as one row.
+- `groupby().agg(["min", "median", "max"])`, one dial against the rest.
+- `nsmallest()`, the lowest settings, with ties where a dial has no effect.
+- `pivot()`, two dials as rows and columns.
+- The mean of a True/False column, which is a share.
+
+The rebuilt grid matches the repo's published `site/data/grid.csv` cell for
+cell, to about 1e-12.
+
 ## Interview questions
 
 1. **Load `rides.csv`, keep weekday rides between 7-9am, compute mean

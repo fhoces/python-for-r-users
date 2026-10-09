@@ -9,8 +9,8 @@ without thinking about syntax.
 
 | # | Module | Concepts | Sample interview questions |
 |---|--------|----------|-----|
-| 1 | Python for R Users | Lists / dicts / comprehensions / `def` / imports | mph function, average fare for SF, invert a dict |
-| 2 | pandas basics | filter / mutate / arrange / summarise | weekday morning fares by city, top-N per group, peak share |
+| 1 | Python for R Users | Lists / dicts / comprehensions / `def` / imports | mph function, average fare for SF, invert a dict, run the Prop 40 estimating function from opa-prop40 |
+| 2 | pandas basics | filter / mutate / arrange / summarise | weekday morning fares by city, top-N per group, peak share, rebuild and query the Prop 40 explorer grid |
 | 3 | Joins, merges, group-by recipes | merge, anti-join, transform, top-N per group | merge with drivers, most-frequent driver per rider, deviation from city mean |
 | 4 | Regression and A/B tests with statsmodels | OLS, robust SEs, fixed effects, logit, A/B inference, DiD | OLS with city FE, A/B treatment effect with CI, DiD |
 | 5 | End-to-end interview scenario | The full pipeline, three scenarios + drill questions | A/B test analysis, multi-CSV processing, disparate-impact audit |

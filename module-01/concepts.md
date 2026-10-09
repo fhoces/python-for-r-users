@@ -302,6 +302,30 @@ for k, v in {**pub, "top3": AG14, "top2": AH14}.items():
 
 The exercise file ends with a drill on the registry pattern (Q6).
 
+### Running the real thing: `score_tab5_cell()` (exercise Q7)
+
+The excerpts above are condensed. Q7 copies one function whole, from
+`compute_tab5.py`, and runs it. `score_tab5_cell()` is the estimating
+function behind the repo's
+[explorer](https://fhoces.github.io/opa-prop40/bsz-analysis/site/explorer/).
+It takes a dict of eight inputs and six assumptions, and it returns a dict of
+seven outcomes. This drill keeps the economics, because the numbers are the
+check. The defaults are the authors' base scenario, and the drill reproduces
+the explorer's main estimate of $106.8 billion.
+
+The Module 1 idioms it uses, with their R twins:
+
+- Keyword arguments with defaults, `def f(inp, avoidance=0.10, ...)`. R
+  writes the same thing as `function(inp, avoidance = 0.10, ...)`. A call
+  that names one argument keeps the defaults for the rest.
+- The one-line if/else, `x if cond else 0`. R writes `if (cond) x else 0`.
+  The function uses it to switch a term off.
+- A dict as the return value. R would return a named list.
+- `**settings` unpacks a dict into keyword arguments. R does this with
+  `do.call()`.
+- A dict comprehension that sweeps one argument over its levels. R would use
+  `sapply()` over a named vector.
+
 ## Interview-style questions for this module
 
 1. Write a function `mph(distance, minutes)` that returns miles per

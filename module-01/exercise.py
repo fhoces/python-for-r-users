@@ -131,3 +131,88 @@ try:
 except ValueError as e:
     print("Q6. rejected:", e)
 # R twin: stats <- list(mean = ..., max = ..., n = ...); stats[[w]](sf)
+
+
+# =============================================================================
+# Q7. Real code: the function behind the Prop 40 explorer's main estimate
+# =============================================================================
+
+# score_tab5_cell() is copied verbatim from the opa-prop40 repo, file
+# bsz-analysis/py/compute_tab5.py at commit 21d653f
+# (https://github.com/fhoces/opa-prop40/blob/21d653f/bsz-analysis/py/compute_tab5.py).
+# It estimates revenue from California's proposed one-time 5% billionaire wealth
+# tax (Proposition 40) at one setting of six assumptions, the six dials of the
+# explorer at https://fhoces.github.io/opa-prop40/bsz-analysis/site/explorer/.
+# Everything here is Module 1 Python: keyword arguments with defaults, dict
+# lookups, a one-line if/else, and a dict as the return value.
+
+# The eight numbers it reads. That repo computes them from the authors' public
+# workbook (August 2026): $B unless noted.
+INP = {
+    "n0": 250,                                    # billionaires Forbes lists in CA (count)
+    "W0": 2307,                                   # their total wealth
+    "C": 3.0613637745707907,                      # CA income tax they pay per year
+    "pct_wealth_increase": 0.2819041155905384,    # extra wealth of the ones Forbes misses (share)
+    "pct_count_increase": 1.4782375212688241,     # how many more billionaires that is (share)
+    "fraction_in_phasein": 0.12141926321056487,   # share of the extra wealth near the $1B line
+    "W_pre": 333.61,                              # wealth of those who left before 2026
+    "leaver_loss": 0.3623624024787383,            # income tax lost to all leavers per year
+}
+
+
+def score_tab5_cell(inp, avoidance=0.10, mobility_share=0.50, avoidance_small=0.20,
+                    sell_share=1 / 3, pareto=False, leavers=False, tax_rate=0.05,
+                    phasein_rate=0.025, gains_share=0.80, ca_cg_rate=0.133):
+    pw = inp["pct_wealth_increase"] if pareto else 0
+    W = inp["W0"] * (1 + pw)
+    n = inp["n0"] * ((1 + inp["pct_count_increase"]) if pareto else 1)
+    taxable = ((1 - avoidance) * (inp["W0"] - (inp["W_pre"] if leavers else 0))
+               + (1 - avoidance_small) * inp["W0"] * pw)
+    # Row 2 subtracts the phase-in deduction; row 4 (pareto AND leavers) does
+    # not (Tab5!F9). Literal workbook behaviour.
+    phasein = inp["W0"] * pw * inp["fraction_in_phasein"] * phasein_rate if (pareto and not leavers) else 0
+    revenue = tax_rate * taxable - phasein
+    extra = revenue * sell_share * gains_share * ca_cg_rate
+    loss = (-(avoidance * mobility_share) * inp["C"] * (1 + pw)
+            - (inp["leaver_loss"] if leavers else 0))
+    return {
+        "n_billionaires": float(n),
+        "wealth": float(W),
+        "taxable_wealth": float(taxable),
+        "avoidance_rate": float(1 - taxable / W),
+        "wealth_tax_revenue": float(revenue),
+        "extra_ca_inctax_sales": float(extra),
+        "annual_ca_inctax_loss": float(loss),
+    }
+
+
+# The explorer's main estimate adds three parts. The income tax loss is per year,
+# so it is summed over 5 years at 3% first (site_pv_factor() in site_exports.py).
+def pv_factor(r=0.03, years=5):
+    return (1 - (1 + r) ** (-years)) / r
+
+def main_estimate(out):
+    return (out["wealth_tax_revenue"] + out["extra_ca_inctax_sales"]
+            + out["annual_ca_inctax_loss"] * pv_factor())
+
+# (a) Call it with the defaults. The defaults are the authors' base scenario.
+base = score_tab5_cell(INP)
+print("\nQ7a. base scenario:")
+for k, v in base.items():
+    print(f"  {k:24s}{v:10.3f}")
+print(f"Q7a. main estimate: ${main_estimate(base):.1f}B")             # $106.8B, as the explorer shows
+
+# (b) Change one assumption by name. Arguments you do not name keep their defaults.
+print(f"Q7b. avoidance 20% instead of 10%: ${main_estimate(score_tab5_cell(INP, avoidance=0.20)):.1f}B")
+
+# (c) Settings kept in a dict, unpacked with ** (R: do.call(f, c(list(inp), settings))).
+leavers_row = {"pareto": False, "leavers": True}
+print(f"Q7c. the authors' leavers row: ${main_estimate(score_tab5_cell(INP, **leavers_row)):.1f}B")
+
+# (d) A dict comprehension sweeps one dial, as the explorer's first slider does.
+sweep = {a: round(main_estimate(score_tab5_cell(INP, avoidance=a)), 1)
+         for a in [0, 0.05, 0.10, 0.15, 0.20, 0.30]}
+print("Q7d. main estimate by avoidance rate:", sweep)
+# `x if cond else 0` in score_tab5_cell is Python's one-line if/else, R's
+# `if (cond) x else 0`. Each one switches a term off: with pareto=False, pw is 0
+# and the missing billionaires add nothing to W, n or taxable.
