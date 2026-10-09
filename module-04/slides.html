@@ -270,6 +270,30 @@ The coefficient on `did` is the DiD estimate. Two-way fixed effects (city + time
 **4. Formula API copies the data.** Fine for most sizes, slow for very large data. Use the matrix interface for big data.
 
 ---
+name: wild-pareto
+
+# In the Wild: A Parameter Calibrated, Not Regressed
+
+`compute_pareto.py` (BSZ reproduction, [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40), see module 1) fits a power law to a table of thresholds `A`, counts above them `B` and wealth above them `C`, the way the paper's spreadsheet does:
+
+```python
+pareto_b_emp = C / (B * A)                 # mean above the threshold, relative to it
+a = int(np.flatnonzero(A == anchor_threshold)[0])
+D23 = np.mean(pareto_b_emp[a:n])           # one number from the rows above the anchor
+D24 = D23 / (D23 - 1)                      # the matching exponent
+below = np.arange(a)                       # R: seq_len(anchor_i - 1)
+n_above_threshold_proj = B.copy()
+n_above_threshold_proj[below] = B[a] * (A[a] / A[below]) ** D24
+```
+
+--
+
+- **No `smf.ols`.** The exponent is a ratio of means pinned at one anchor row, because that is the spreadsheet's formula and the Python must match the sheet cell by cell. The variable names are the cells (`D23`, `D24`) so the check reads line by line.
+- `B.copy()` before writing into a slice: numpy modifies in place, R copies on modify (module 1, trap 8).
+- `B[a] * (A[a] / A[below]) ** D24` broadcasts a scalar over a vector, R's recycling.
+- The regression twin is `smf.ols("np.log(n_above) ~ np.log(threshold)")`: `np.log` inside a formula works like `log()` inside `lm()`. The two estimators agree only when the tail is a power law. The drill checks that on fares.
+
+---
 class: inverse, center, middle
 
 # Interview Questions

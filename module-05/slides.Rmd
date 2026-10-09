@@ -217,6 +217,75 @@ print(f"higher fare per mile, conditional on controls.")
 **The "documenting disparate impact, not identifying the mechanism" caveat is the tell** that you understand what regression with controls can and can't do. Memorize the phrase.
 
 ---
+name: wild-run
+
+# In the Wild: One Function Per Stage
+
+The 30-minute structure at 200 lines: `run_export.py` in the BSZ reproduction ([`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40), see module 1) reads a workbook and writes every number the R pipeline exports.
+
+.small[
+```python
+def run(out_dir=None, db=None):
+    out_dir = Path(out_dir or project_root() / "export" / "py")
+    # Inputs: one extract_* per sheet
+    data_sec_all = ds.extract_data_sec_all()
+    shortrunseries = ds.extract_shortrunseries()
+    # The shared SQL step
+    db = build_workbook_db(data_sec_all, ftb_raw, path=db)
+    data_sec_agg_r = read_data_sec_agg(db)
+    # Computations: data frames in, data frames out, no file I/O inside
+    srs_r = compute_shortrunseries(data_sec_agg_r, data_sec_top4, bci_r, shortrunseries)
+    exhibits = {"shortrunseries_r": srs_r, "fig1": fg.build_fig1(srs_r)}
+    # Outputs: every exhibit becomes a CSV
+    for name, obj in exhibits.items():
+        files += write_exhibit(name, obj, ex_dir)
+    print(f"wrote {len(files)} files under {out_dir}")
+    return files
+
+if __name__ == "__main__":
+    run()
+```
+]
+
+--
+
+- Defaults of `None` resolved inside (`out_dir or ...`), so a test can redirect the output.
+- The compute functions never touch files; that is what makes them testable one at a time.
+- The `__main__` guard: running the file runs it, importing it does not, so the parity test can import `run`.
+
+---
+
+# In the Wild: A Check That Fails Loudly
+
+`check_common.py`, the report every checker in the reproduction ends with:
+
+.small[
+```python
+def write_report(title, checks, report_name):
+    failures = sum(not c["ok"] for c in checks)          # R: sum(!ok)
+    ...
+    print(title)
+    for c in checks:
+        print(f"  {'PASS' if c['ok'] else 'FAIL'}  {c['name']:<58} n={c['n']:<7} "
+              f"maxdiff={fmt(c['maxdiff'])}")
+        if not c["ok"]:
+            print(f"        {c['note']}")
+    print(f"{failures} failing check(s). Report: {out}")
+    return 1 if failures else 0
+
+if __name__ == "__main__":
+    sys.exit(main())          # R: quit(status = 1)
+```
+]
+
+--
+
+- A check is a dict: `name`, `ok`, `n` compared, `maxdiff`, `note`. Every comparison in the pipeline returns one, so one report function serves them all.
+- `{c['name']:<58}` pads to a column; `fmt()` prints `maxdiff` with `:.3g`, `inf` when one side is missing.
+- The **exit code** is the result a Makefile or CI reads. Step 4 of the interview structure, "same answer two ways", is this function with `n = 1`.
+- The report prints counts and maximum differences only, never a row of the private files, so it can be committed.
+
+---
 
 # What to Install Before the Interview
 

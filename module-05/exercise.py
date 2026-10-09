@@ -145,3 +145,37 @@ print(f"  SE: {fit_audit.bse['high_minority']:.3f}")
 print(f"  → After controlling for distance, high-minority neighborhoods")
 print(f"    are charged ${fit_audit.params['high_minority']:.3f}/mi more.")
 print(f"    This documents disparate impact; mechanism is not identified.")
+
+
+# =============================================================================
+# Q7. In the wild: checks that print PASS / FAIL and set an exit code
+#     (the write_report pattern of check_common.py)
+# =============================================================================
+
+import math
+
+def check_balance(ab):
+    share = ab.groupby("treatment")["city"].value_counts(normalize=True).unstack()
+    maxd = float((share.loc[1] - share.loc[0]).abs().max())
+    return {"name": "city shares balanced", "ok": maxd < 0.05, "n": len(ab),
+            "maxdiff": maxd, "note": "max |share_T - share_C| across cities"}
+
+def check_ate(fit):
+    lo, hi = fit.conf_int().loc["treatment"]
+    return {"name": "ATE CI excludes zero", "ok": not (lo <= 0 <= hi), "n": int(fit.nobs),
+            "maxdiff": float(hi - lo), "note": "CI width"}
+
+def fmt(v):
+    return "n/a" if (isinstance(v, float) and math.isnan(v)) else f"{v:.3g}"
+
+print("\nQ7. Checks on the A/B test")
+checks = [check_balance(ab), check_ate(fit)]          # fit is Q1's OLS
+for c in checks:
+    print(f"  {'PASS' if c['ok'] else 'FAIL'}  {c['name']:<24} n={c['n']:<6} maxdiff={fmt(c['maxdiff'])}")
+    if not c["ok"]:
+        print(f"        {c['note']}")
+failures = sum(not c["ok"] for c in checks)
+exit_code = 1 if failures else 0
+print(f"  {failures} failing check(s); exit code {exit_code}")
+# In a script: sys.exit(main()) where main() returns this code, so a Makefile
+# or CI stops on a failed check. R: quit(status = 1).

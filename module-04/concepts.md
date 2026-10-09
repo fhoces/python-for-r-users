@@ -284,6 +284,38 @@ change it: `C(city, Treatment(reference="SF"))`.
 .fit(cov_type="cluster", cov_kwds={"groups": df["driver_id"]})
 ```
 
+## In the wild: a parameter calibrated, not regressed
+
+`compute_pareto.py` in the BSZ reproduction ([`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40),
+`bsz-analysis/py/`; module 1 explains the series) fits a power law to a
+table of thresholds `A`, counts above each threshold `B` and wealth above
+each threshold `C`, the way the paper's spreadsheet does:
+
+```python
+pareto_b_emp = C / (B * A)                 # mean above the threshold, relative to it
+a = int(np.flatnonzero(A == anchor_threshold)[0])
+D23 = np.mean(pareto_b_emp[a:n])           # one number from the rows above the anchor
+D24 = D23 / (D23 - 1)                      # the matching exponent
+below = np.arange(a)                       # R: seq_len(anchor_i - 1)
+n_above_threshold_proj = B.copy()
+n_above_threshold_proj[below] = B[a] * (A[a] / A[below]) ** D24
+```
+
+- No `smf.ols`. The exponent is a ratio of means pinned at one anchor row,
+  because that is the spreadsheet's formula and the Python must match the
+  sheet cell by cell. The variable names are the cells (`D23`, `D24`) so
+  the parity check reads line by line against the sheet.
+- `B.copy()` before writing into a slice: numpy modifies in place, R
+  copies on modify (module 1, trap 8). Without the copy, `B` itself would
+  change.
+- `B[a] * (A[a] / A[below]) ** D24` broadcasts a scalar over a vector, R's
+  recycling.
+- The regression twin, in this module's vocabulary, is
+  `smf.ols("np.log(n_above) ~ np.log(threshold)")`: `np.log` inside a
+  formula works like `log()` inside `lm()`. The two estimators agree only
+  when the tail is a power law. On the course's fares they do not (the
+  exercise file, Q6), which is the point of running both.
+
 ## Interview questions
 
 1. **OLS of `fare_usd` on `distance_mi + duration_min + C(city)`**, with

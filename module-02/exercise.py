@@ -111,3 +111,25 @@ summary = (
 )
 print("\nBonus: per-city per-weekday summary (first 10 rows):")
 print(summary.head(10).round(2))
+
+
+# =============================================================================
+# Q6. In the wild: a per-city table with an "All cities" row (tables.py pattern)
+# =============================================================================
+
+by_city = (
+    rides
+    .groupby("city", as_index=False)
+    .agg(n_rides=("ride_id", "count"), mean_fare=("fare_usd", "mean"))
+    .sort_values("mean_fare", ascending=False, kind="stable")   # R's order() is stable
+)
+all_row = {"city": "All cities", "n_rides": len(rides), "mean_fare": rides["fare_usd"].mean()}
+q6 = pd.concat([by_city, pd.DataFrame([all_row])], ignore_index=True)   # bind_rows
+print("\nQ6. Mean fare by city, with a total row:")
+print(q6.round(2).to_string(index=False))
+
+# numpy twins of R's c(NA, head(x, -1)) and sum(x, na.rm = TRUE), on daily ride counts
+daily = rides.groupby(rides["pickup_at"].dt.floor("D")).size().to_numpy(float)
+change = daily - np.append(np.nan, daily[:-1])
+print(f"Q6. {len(daily)} days; day-over-day changes sum to {np.nansum(change):.0f}, "
+      f"which is last - first = {daily[-1] - daily[0]:.0f}")

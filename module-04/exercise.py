@@ -124,3 +124,32 @@ print(f"  Coefficient on `did`: {did_fit.params['did']:.3f}")
 print(f"  SE                  : {did_fit.bse['did']:.3f}")
 print(f"  p-value             : {did_fit.pvalues['did']:.4f}")
 print(f"  True effect         : 5.000")
+
+
+# =============================================================================
+# Q6. In the wild: a power-law exponent two ways (the compute_pareto.py pattern)
+# =============================================================================
+
+x = rides["fare_usd"].to_numpy()
+thr = np.array([15.0, 20.0, 25.0, 30.0, 40.0])             # A: thresholds
+n_above = np.array([(x >= t).sum() for t in thr], float)   # B: count above each
+w_above = np.array([x[x >= t].sum() for t in thr])         # C: total fare above each
+
+# The spreadsheet way: b = mean above / threshold, averaged from an anchor row up
+b_emp = w_above / (n_above * thr)
+anchor = 1                                                 # the $20 row
+b = np.mean(b_emp[anchor:])
+a_ratio = b / (b - 1)
+proj = n_above.copy()                                      # copy, then write into a slice
+proj[:anchor] = n_above[anchor] * (thr[anchor] / thr[:anchor]) ** a_ratio
+
+# The regression way: log(count) on log(threshold), np.log inside the formula
+tail = pd.DataFrame({"thr": thr, "n_above": n_above})
+fit_tail = smf.ols("np.log(n_above) ~ np.log(thr)", data=tail).fit()
+a_ols = -fit_tail.params["np.log(thr)"]
+
+print("\nQ6. Power-law exponent on the fare tail")
+print(f"  ratio method : a = {a_ratio:.2f}; projected count above $15 = {proj[0]:.0f} "
+      f"(actual {n_above[0]:.0f})")
+print(f"  OLS on logs  : a = {a_ols:.2f}, R² = {fit_tail.rsquared:.3f}")
+print("  They differ: fares are not Pareto-distributed, so the anchor choice matters.")

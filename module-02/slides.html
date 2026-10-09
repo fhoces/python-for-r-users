@@ -229,6 +229,57 @@ These are `tidyr::pivot_wider` and `pivot_longer`.
 **4. The default index sticks around.** If you filter or group, the row index can become non-contiguous. Use `df.reset_index(drop=True)` for a fresh integer index.
 
 ---
+name: wild-table
+
+# In the Wild: Filter, Stable Sort, and a Summary Row
+
+Real code from the BSZ reproduction ([`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40), `bsz-analysis/py/`, see module 1). Two table builders:
+
+```python
+# figures.py: keep the rows with a positive total, largest first
+d = d[d["total"].notna() &amp; (d["total"] &gt; 0)]
+# R: d[order(d$total, decreasing = TRUE), ]  (stable for ties)
+d = d.sort_values("total", ascending=False, kind="stable")
+
+# tables.py: a per-year panel, then one average row appended under it
+panel["ca_inctax_per_wealth"] = panel["ca_inctax_b"] / panel["wealth_b"]
+avg_row = {"year": "2019-2025 average",
+           "wealth_b": _rmean(panel["wealth_b"]),
+           "ca_inctax_b": _rmean(panel["ca_inctax_b"])}
+pd.concat([panel, pd.DataFrame([avg_row])], ignore_index=True)
+```
+
+--
+
+- `.notna()`, never `!= np.nan` (trap 3). Each condition in parentheses (trap 1).
+- **`kind="stable"`.** pandas' default sort may reorder tied rows; R's `order()` never does. When a parity test compares row by row, the order within ties is part of the answer.
+- `pd.DataFrame([avg_row])` is a one-row frame from a dict; `concat` with `ignore_index=True` is `bind_rows(panel, tibble(...))`. The `year` column holds `"2019"` and a label, so the panel stores it as text from the start.
+
+---
+
+# In the Wild: numpy for R's Vector Idioms
+
+`compute_pareto.py` reproduces a spreadsheet column by column. Its R-to-numpy dictionary:
+
+```python
+next_C = np.append(C[1:], 0.0)                   # R: c(x[-1], 0)   shift up, pad with 0
+wealth_in_bracket = C - next_C
+with np.errstate(divide="ignore", invalid="ignore"):
+    avg = wealth_in_bracket / actual_density     # 0/0 is NaN, silently, as in R
+anchor = np.flatnonzero(A == anchor_threshold)   # R: which(A == 4.5)
+total = np.nansum(d["wealth_in_bracket"])        # R: sum(x, na.rm = TRUE)
+# R: seq(0, max_rate, by = rate_step)
+n = int(max_rate / rate_step + 1e-10)
+rates = np.minimum(0 + np.arange(n + 1) * rate_step, max_rate)
+```
+
+--
+
+- **No `np.arange` with a float step.** `np.arange(1, 1.3, 0.1)` returns four elements, `1.3` included. Build the grid as an integer range times the step, as R's `seq()` does, or use `np.linspace(0, 0.2, 201)`.
+- **Summation order.** `tables.py` has a `_rsum()` that adds left to right in a loop, because numpy's `sum()` adds pairwise and the two differ in the last digits (`356347.01` against `356347.00999999914` on this course's fares). Irrelevant for analysis, visible to a parity test at `1e-9`.
+- NaN is the missing value throughout (`NA = np.nan`); `np.nansum` and `np.nanmean` are the `na.rm = TRUE` family.
+
+---
 class: inverse, center, middle
 
 # Interview Questions

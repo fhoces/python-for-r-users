@@ -233,6 +233,65 @@ rides.groupby("city")["fare_usd"].transform("nlargest")# ✗ wrong shape
 
 For variable-length output use `apply()` instead.
 
+## In the wild: a join without pandas, and `match()` two ways
+
+`check_common.py` in the BSZ reproduction ([`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40),
+`bsz-analysis/py/`; module 1 explains the series) compares an export with
+an answer key row by row. It aligns the two on a key with dicts and sets,
+which is a join written by hand:
+
+```python
+def compare_keyed(name, ours, key, key_cols, num_cols, text_cols, tol):
+    def k_of(r):
+        return tuple(text(r[c]) for c in key_cols)   # the composite key, as text
+    o = {k_of(r): r for r in ours}                   # rows reachable by their key
+    k = {k_of(r): r for r in key}
+    common = [x for x in o if x in k]                # inner join: keys on both sides
+    chk = compare_rows(name, [o[x] for x in common], [k[x] for x in common], num_cols, text_cols, tol)
+    only_o, only_k = len(set(o) - set(k)), len(set(k) - set(o))   # the two anti-joins
+    dup = (len(ours) - len(o)) + (len(key) - len(k))              # rows lost to a repeated key
+    chk["ok"] = chk["ok"] and only_o == 0 and only_k == 0 and dup == 0
+```
+
+- The key is a tuple of text, so a composite key works and `"2019"`
+  matches `2019` whichever side typed it as a number.
+- A dict keeps one row per key; a repeated key silently overwrites the
+  earlier one. `len(ours) - len(o)` counts what was lost, which is the
+  many-to-many trap (trap 1 below) made visible instead of multiplying rows.
+- The pandas twin: `merge(how="outer", indicator=True)` and
+  `value_counts()` of `_merge` give the three counts (`both`, `left_only`,
+  `right_only`); `duplicated(subset=key_cols).sum()` gives `dup`. Module 7
+  uses that form. The hand-written version keeps every row reachable by
+  its key (`o[x]`), which the cell-by-cell comparison needs next.
+
+The same lookup, R's `m1$x[match(yrs, m1$year)]`, appears twice in the
+reproduction:
+
+```python
+# compute_shortrunseries.py: positions first, then the values
+m1_year = m1["year"].to_numpy()
+idx = [int(np.flatnonzero(m1_year == y)[0]) for y in yrs]
+X = m1["ca_inctax_ca_billionaires_b"].to_numpy(float)[idx]
+
+# tables.py: through the index
+m1 = billionaires_ca_inctax_r["method1"].set_index("year")
+x = m1.loc[yrs, "ca_inctax_ca_billionaires_b"].to_numpy(float)
+```
+
+Both are positional lookups by key. They differ in how they fail: a
+missing year raises `IndexError` in the first and `KeyError` in the
+second, at the lookup. R's `match()` returns `NA` and the error surfaces
+later, somewhere else. Where a lookup must return exactly one row, the file
+guards it:
+
+```python
+def pick(fid, yr, col):
+    row = d[(d["forbes_id"] == fid) & (d["year"] == yr)]
+    return float(row[col].iloc[0]) if len(row) == 1 else NA   # R: if (nrow(row) == 1) ... else NA
+```
+
+The exercise file drills the key-set comparison against `merge` (Q6).
+
 ## Interview questions
 
 1. **Merge `rides` with `drivers` on `driver_id`, keeping all rides.**

@@ -83,3 +83,25 @@ full = (
 )
 print("\nBonus: full join shape:", full.shape)
 print(full.columns.tolist()[:12], "...")
+
+
+# =============================================================================
+# Q6. In the wild: align two tables on a key by hand, then with merge
+#     (the compare_keyed pattern of check_common.py)
+# =============================================================================
+
+# Who is on one side only? riders.csv against the riders that appear in rides.csv
+ours, seen = set(riders["rider_id"]), set(rides["rider_id"])
+print("\nQ6. riders never riding:", len(ours - seen),
+      "| rides with an unknown rider:", len(seen - ours))
+
+# The pandas twin: an outer merge with an indicator column
+m = riders[["rider_id"]].merge(rides[["rider_id"]].drop_duplicates(), on="rider_id",
+                               how="outer", indicator=True)
+print("Q6. merge indicator:", m["_merge"].value_counts().to_dict())
+
+# A composite key: one dict entry per (driver, rider) pair; repeats are what a dict loses
+pairs = {(d, r): True for d, r in zip(rides["driver_id"], rides["rider_id"])}
+dup = len(rides) - len(pairs)
+print("Q6. repeated (driver, rider) pairs:", dup,
+      "| pandas:", rides.duplicated(["driver_id", "rider_id"]).sum())

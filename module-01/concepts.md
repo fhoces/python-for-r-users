@@ -233,6 +233,75 @@ nor the spacing changes what the code does.
 10. **`print()` is a function**, not a statement. `print "hello"`
     doesn't work in Python 3.
 
+## In the wild: real code from one reproduction
+
+Modules 1 to 5 each end with a short slide of real Python from one
+reproduction, the BSZ step of [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40)
+(`bsz-analysis/py/`), the same code module 7 drills. The excerpts are
+condensed (a few lines of each function, names unchanged) and the
+economics is left out on purpose: the point is the idiom, read with its R
+twin next to it.
+
+### A dict of functions (`load_bundle.py`)
+
+```python
+LOADERS = {
+    "rtb_all_combined": load_rtb_all_combined,
+    "rtb_ca_cik": load_rtb_ca_cik,
+    "comp_daily_form4": load_comp_daily_form4,   # needs a query's output, so never by default
+}
+DEFAULT_TABLES = [t for t in LOADERS if t != "comp_daily_form4"]
+
+def main(argv):
+    wanted = argv or DEFAULT_TABLES
+    unknown = [t for t in wanted if t not in LOADERS]
+    if unknown:
+        sys.exit(f"Unknown table(s): {', '.join(unknown)}. Known: {', '.join(LOADERS)}")
+    for table in wanted:
+        n = LOADERS[table](con, root)
+```
+
+One `load_<table>()` function per raw input, and a registry that maps a
+name to the function. Adding an input means writing one function and one
+line in `LOADERS`; `main()` never changes. The idioms, with their R twins:
+
+- `LOADERS[table](con, root)`: a function is a value, so the dict can hold
+  it and the call applies to whatever the lookup returns. R: a named list
+  of functions, `loaders[[table]](con, root)`.
+- `argv or DEFAULT_TABLES`: an empty list is falsy, so `or` picks the
+  default. R: `if (length(argv)) argv else default`.
+- `for t in LOADERS` walks the keys (R: `names(loaders)`), and
+  `", ".join(LOADERS)` joins them (R: `paste(names(loaders), collapse = ", ")`).
+- `sys.exit("text")` prints to stderr and exits with code 1. R: `stop()`.
+
+### Three comprehension moves
+
+```python
+FORM4_INT = {
+    "filer_cik", "document_type", "table", "num_owners", "single_owner",
+} | {f"owner_{k}_{i}" for k in ("director", "officer", "ten_percent", "other")
+     for i in range(1, 11)}
+...
+if h in FORM4_INT:        # R: h %in% form4_int
+```
+
+A set literal joined to a set comprehension by the union operator. The two
+`for` clauses read like nested loops, outer first, so 4 kinds times 10
+slots give 40 names, each built by an f-string. R would write
+`paste0("owner_", rep(kinds, each = 10), "_", 1:10)`. Membership on a set
+is a hash lookup; on a list it scans the list; the code reads the same.
+
+`compute_shortrunseries.py` merges dicts with `**` and then names the keys
+the way R's `unlist()` names a nested list, which is what its parity test
+compares against:
+
+```python
+for k, v in {**pub, "top3": AG14, "top2": AH14}.items():
+    out[f"top5_public_b.{k}"] = v     # R: c(pub, top3 = AG14, top2 = AH14), then unlist()
+```
+
+The exercise file ends with a drill on the registry pattern (Q6).
+
 ## Interview-style questions for this module
 
 1. Write a function `mph(distance, minutes)` that returns miles per

@@ -49,6 +49,17 @@ python module-01/exercise.py
 | **6** | [Reading and Reviewing Someone Else's Python](module-06/) | Reading an unfamiliar codebase: imports → entry point → leaves first | "Walk me through this code," find the bug, review a PR |
 | **7** | [Loading, Running SQL and Checking a Reproduction](module-07/) | Chunked loading with explicit NULLs, parameter binding, `executescript`, deterministic exports, `merge(indicator=True)`, tolerances, exit codes, the R twin; part 2: translating an R pipeline into a Python twin (openpyxl cell reading, pandas versions of R idioms, the parity test at a relative tolerance) | Write the loader, the SQL runner, the answer-key comparison and the parity check, then a positional sheet reader, R's `as.numeric()` on a cell, a dplyr summary in pandas and a relative-tolerance parity test; graded by `check.py` |
 
+## Real code in modules 1 to 5
+
+Each of modules 1 to 5 closes with an "In the wild" slide, a concepts
+section and a drill: a few lines of real Python from one reproduction, the
+BSZ step of [fhoces/opa-prop40](https://github.com/fhoces/opa-prop40)
+(`bsz-analysis/py/`), the same code module 7 works on. The excerpts are
+condensed and the economics is left out; each shows one idiom next to its
+R twin (a dict of functions, a stable sort and a summary row, a join
+written with dicts and sets, a power law calibrated without a regression,
+one function per pipeline stage and a check with an exit code).
+
 ## Module 7: different data, and two new artifact types
 
 Module 7 works on the Python around one SQL step of a real replication

@@ -98,3 +98,36 @@ print("Last two nums:   ", nums[-2:])
 
 # dict.get with default
 print("Missing city -> default:", {"SF": 5}.get("LA", 0))
+
+
+# =============================================================================
+# Q6. In the wild: a dict of functions (the LOADERS pattern of load_bundle.py)
+# =============================================================================
+
+# A registry: names -> functions. Each takes the list of ride dicts from Q2.
+def mean_fare(rows):
+    return sum(r["fare"] for r in rows) / len(rows)
+
+def max_fare(rows):
+    return max(r["fare"] for r in rows)
+
+def n_rides(rows):
+    return len(rows)
+
+STATS = {"mean": mean_fare, "max": max_fare, "n": n_rides}
+
+def summarise_sf(rows, wanted=None):
+    wanted = wanted or list(STATS)                 # an empty list is falsy: default to all
+    unknown = [w for w in wanted if w not in STATS]
+    if unknown:
+        raise ValueError(f"Unknown stat(s): {', '.join(unknown)}. Known: {', '.join(STATS)}")
+    sf = [r for r in rows if r["city"] == "SF"]
+    return {w: STATS[w](sf) for w in wanted}       # call the function the dict holds
+
+print("\nQ6. all stats:", summarise_sf(rides))
+print("Q6. two stats:", summarise_sf(rides, ["n", "max"]))
+try:
+    summarise_sf(rides, ["median"])
+except ValueError as e:
+    print("Q6. rejected:", e)
+# R twin: stats <- list(mean = ..., max = ..., n = ...); stats[[w]](sf)

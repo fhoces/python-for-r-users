@@ -298,6 +298,73 @@ In R, `library(dplyr)` dumps all functions into your namespace — you just call
 ]
 
 ---
+name: wild-registry
+
+# In the Wild: A Dict of Functions
+
+From here on, each module ends with a few lines of real code from one reproduction, the BSZ step of [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40) (`bsz-analysis/py/`), the code module 7 drills. Economics out, idiom in. Here, `load_bundle.py`: one `load_&lt;table&gt;()` per raw input, and a **registry** that maps names to them:
+
+.small[
+```python
+LOADERS = {
+    "rtb_all_combined": load_rtb_all_combined,
+    "rtb_ca_cik": load_rtb_ca_cik,
+    "comp_daily_form4": load_comp_daily_form4,   # needs a query's output first
+}
+DEFAULT_TABLES = [t for t in LOADERS if t != "comp_daily_form4"]
+
+def main(argv):
+    wanted = argv or DEFAULT_TABLES
+    unknown = [t for t in wanted if t not in LOADERS]
+    if unknown:
+        sys.exit(f"Unknown table(s): {', '.join(unknown)}. Known: {', '.join(LOADERS)}")
+    for table in wanted:
+        n = LOADERS[table](con, root)
+```
+]
+
+--
+
+.small[
+| Python | R |
+|---|---|
+| `LOADERS[table](con, root)`: a function is a value; call what the dict returns | `loaders[[table]](con, root)` on a named list of functions |
+| `argv or DEFAULT_TABLES`: an empty list is falsy | `if (length(argv)) argv else default` |
+| `for t in LOADERS`, `", ".join(LOADERS)`: a dict iterates its **keys** | `names(loaders)`, `paste(names(loaders), collapse = ", ")` |
+| `sys.exit("text")`: message to stderr, exit code 1 | `stop("text")` |
+]
+
+---
+
+# In the Wild: Three Comprehension Moves
+
+The same file builds the set of columns to load as integers:
+
+```python
+FORM4_INT = {
+    "filer_cik", "document_type", "table", "num_owners", "single_owner",
+} | {f"owner_{k}_{i}" for k in ("director", "officer", "ten_percent", "other")
+     for i in range(1, 11)}
+...
+if h in FORM4_INT:        # R: h %in% form4_int
+```
+
+--
+
+- A **set literal** joined to a **set comprehension** by the union operator. Two `for` clauses read like nested loops, outer first: 4 kinds times 10 slots is 40 names.
+- The f-string builds each name in place. R: `paste0("owner_", rep(kinds, each = 10), "_", 1:10)`.
+- Membership on a set is a hash lookup; on a list it scans. Both read the same.
+
+--
+
+`compute_shortrunseries.py` merges dicts with `**` and then names the keys the way R's `unlist()` would:
+
+```python
+for k, v in {**pub, "top3": AG14, "top2": AH14}.items():
+    out[f"top5_public_b.{k}"] = v     # R: c(pub, top3 = AG14, top2 = AH14), then unlist()
+```
+
+---
 class: inverse, center, middle
 
 # Interview Questions

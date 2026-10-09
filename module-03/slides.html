@@ -211,6 +211,62 @@ combined = pd.concat([df1, df2], axis=1)
 **4. `transform` requires same-length output.** For variable-length output use `apply()`.
 
 ---
+name: wild-join
+
+# In the Wild: A Join Without pandas
+
+`check_common.py` (BSZ reproduction, [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40), see module 1) compares an export with an answer key row by row. It aligns the two on a key with dicts and sets, a join written by hand:
+
+.small[
+```python
+def compare_keyed(name, ours, key, key_cols, num_cols, text_cols, tol):
+    def k_of(r):
+        return tuple(text(r[c]) for c in key_cols)   # the composite key, as text
+    o = {k_of(r): r for r in ours}                   # rows reachable by their key
+    k = {k_of(r): r for r in key}
+    common = [x for x in o if x in k]                # inner join: keys on both sides
+    chk = compare_rows(name, [o[x] for x in common], [k[x] for x in common], num_cols, text_cols, tol)
+    only_o, only_k = len(set(o) - set(k)), len(set(k) - set(o))   # the two anti-joins
+    dup = (len(ours) - len(o)) + (len(key) - len(k))              # rows lost to a repeated key
+    chk["ok"] = chk["ok"] and only_o == 0 and only_k == 0 and dup == 0
+```
+]
+
+--
+
+- The key is a **tuple of text**, so a composite key works and `"2019"` matches `2019`.
+- A dict keeps one row per key; a repeated key silently overwrites. `len(ours) - len(o)` counts what was lost: the many-to-many trap, made visible.
+- The pandas twin: `merge(how="outer", indicator=True)` and `value_counts()` of `_merge` give the three counts; `duplicated(subset=key_cols).sum()` gives `dup`. Module 7 uses that form.
+
+---
+
+# In the Wild: `match()` Two Ways
+
+The same lookup, R's `m1$x[match(yrs, m1$year)]`, written twice in the same reproduction:
+
+```python
+# compute_shortrunseries.py: positions first, then the values
+m1_year = m1["year"].to_numpy()
+idx = [int(np.flatnonzero(m1_year == y)[0]) for y in yrs]
+X = m1["ca_inctax_ca_billionaires_b"].to_numpy(float)[idx]
+
+# tables.py: through the index
+m1 = billionaires_ca_inctax_r["method1"].set_index("year")
+x = m1.loc[yrs, "ca_inctax_ca_billionaires_b"].to_numpy(float)
+```
+
+--
+
+- Both are positional lookups by key. The difference is how they fail: a missing year raises `IndexError` in the first and `KeyError` in the second. R's `match()` returns `NA`, and the error surfaces later, somewhere else.
+- Where a lookup must be unique, the file guards it:
+
+```python
+def pick(fid, yr, col):
+    row = d[(d["forbes_id"] == fid) &amp; (d["year"] == yr)]
+    return float(row[col].iloc[0]) if len(row) == 1 else NA   # R: if (nrow(row) == 1) ... else NA
+```
+
+---
 class: inverse, center, middle
 
 # Interview Questions
