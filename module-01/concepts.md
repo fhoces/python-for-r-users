@@ -235,12 +235,13 @@ nor the spacing changes what the code does.
 
 ## In the wild: real code from one reproduction
 
-Modules 1 to 5 each end with a short slide of real Python from one
-reproduction, the BSZ step of [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40)
-(`bsz-analysis/py/`), the same code module 7 drills. The excerpts are
-condensed (a few lines of each function, names unchanged) and the
-economics is left out on purpose: the point is the idiom, read with its R
-twin next to it.
+Modules 1 to 5 each end with a short slide of real Python. The source is
+one reproduction: the BSZ step of
+[`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40), folder
+`bsz-analysis/py/`. BSZ is a paper on California billionaires. Module 7
+reads that same code file by file. The excerpts are condensed to a few
+lines of each function, with the names unchanged. Ignore what the code
+computes. The point is the idiom, read with its R twin next to it.
 
 ### A dict of functions (`load_bundle.py`)
 
