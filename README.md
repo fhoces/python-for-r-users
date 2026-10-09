@@ -52,13 +52,15 @@ python module-01/exercise.py
 ## Real code in modules 1 to 5
 
 Each of modules 1 to 5 closes with an "In the wild" slide, a concepts
-section and a drill: a few lines of real Python from one reproduction, the
-BSZ step of [fhoces/opa-prop40](https://github.com/fhoces/opa-prop40)
-(`bsz-analysis/py/`), the same code module 7 works on. The excerpts are
-condensed and the economics is left out; each shows one idiom next to its
-R twin (a dict of functions, a stable sort and a summary row, a join
-written with dicts and sets, a power law calibrated without a regression,
-one function per pipeline stage and a check with an exit code).
+section and a drill, built on a few lines of real Python. The source is
+one reproduction: the BSZ step of
+[fhoces/opa-prop40](https://github.com/fhoces/opa-prop40), folder
+`bsz-analysis/py/`. BSZ is a paper on California billionaires. Module 7
+reads that same code file by file. The excerpts are condensed, and what
+the code computes is left out. Each shows one idiom next to its R twin: a
+dict of functions, a stable sort and a summary row, a join written with
+dicts and sets, a power law calibrated without a regression, one function
+per pipeline stage and a check with an exit code.
 
 The handout [handout-bsz-code.html](https://fhoces.github.io/python-for-r-users/handout-bsz-code.html)
 maps every use of that code, module by module and file by file.
