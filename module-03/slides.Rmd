@@ -15,6 +15,32 @@ output:
 .remark-code, .remark-inline-code { font-size: 80%; }
 .remark-slide-content { padding: 1em 2em; }
 .small { font-size: 80%; }
+.nav-btn {
+  position: absolute;
+  bottom: 12px;
+  left: 40px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn:hover { background: #c5cae9; }
+.nav-btn-br {
+  position: absolute;
+  bottom: 12px;
+  right: 70px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn-br:hover { background: #c5cae9; }
 ```
 
 # Course Map
@@ -228,6 +254,9 @@ def compare_keyed(name, ours, key, key_cols, num_cols, text_cols, tol):
 - A dict keeps one row per key; a repeated key silently overwrites. `len(ours) - len(o)` counts what was lost: the many-to-many trap, made visible.
 - The pandas twin: `merge(how="outer", indicator=True)` and `value_counts()` of `_merge` give the three counts; `duplicated(subset=key_cols).sum()` gives `dup`. Module 7 uses that form.
 
+
+<a href="https://fhoces.github.io/opa-prop40/bsz-analysis/site/repro.html#mismatches-found-and-how-each-was-resolved" class="nav-btn">report: what matches the authors' files →</a>
+
 ---
 name: wild-match
 
@@ -256,6 +285,9 @@ def pick(fid, yr, col):
     row = d[(d["forbes_id"] == fid) & (d["year"] == yr)]
     return float(row[col].iloc[0]) if len(row) == 1 else NA   # R: if (nrow(row) == 1) ... else NA
 ```
+
+
+<a href="https://fhoces.github.io/opa-prop40/bsz-analysis/site/repro.html#a.-california-income-tax-table-2-figure-3-and-table-3" class="nav-btn">report: Table 2 and Table 3 →</a>
 
 ---
 class: inverse, center, middle

@@ -15,6 +15,32 @@ output:
 .remark-code, .remark-inline-code { font-size: 80%; }
 .remark-slide-content { padding: 1em 2em; }
 .small { font-size: 80%; }
+.nav-btn {
+  position: absolute;
+  bottom: 12px;
+  left: 40px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn:hover { background: #c5cae9; }
+.nav-btn-br {
+  position: absolute;
+  bottom: 12px;
+  right: 70px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn-br:hover { background: #c5cae9; }
 ```
 
 # Course Map
@@ -292,7 +318,7 @@ name: wild-registry
 
 # In the Wild: A Dict of Functions
 
-Each module now ends with real code from one reproduction: the BSZ step of [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40) (BSZ: a paper on California billionaires; module 7 reads that code file by file). Ignore what it computes and look at the Python habits an R user would write differently. Here: three raw files go into a database, one `load_<table>()` per file, and a dict (the **registry**) maps each table name to its function:
+Each module now ends with real code from one reproduction: the BSZ step of [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40) (BSZ: a paper on California billionaires; module 7 reads that code file by file). Ignore what it computes and look at the Python habits an R user would write differently. Here (the report's [raw-data step](https://fhoces.github.io/opa-prop40/bsz-analysis/site/repro.html#mismatches-found-and-how-each-was-resolved)): three raw files go into a database, one `load_<table>()` per file, and a dict (the **registry**) maps each table name to its function:
 
 .small[
 ```python
@@ -324,6 +350,7 @@ def main(argv):
 | `sys.exit("text")`: message to stderr, exit code 1 | `stop("text")` |
 ]
 
+
 ---
 name: wild-comprehensions
 
@@ -354,6 +381,9 @@ if h in FORM4_INT:        # R: h %in% form4_int
 for k, v in {**pub, "top3": AG14, "top2": AH14}.items():
     out[f"top5_public_b.{k}"] = v     # R: c(pub, top3 = AG14, top2 = AH14), then unlist()
 ```
+
+
+<a href="https://fhoces.github.io/opa-prop40/bsz-analysis/site/repro.html#a.-short-run-growth-table-1-panel-a-and-figure-1" class="nav-btn">report: Table 1 Panel A and Figure 1 →</a>
 
 ---
 name: wild-run
@@ -387,6 +417,9 @@ def score_tab5_cell(inp, avoidance=0.10, mobility_share=0.50, avoidance_small=0.
 | `inp["W0"]`: look up one input by name | `inp[["W0"]]` |
 ]
 
+
+<a href="https://fhoces.github.io/opa-prop40/bsz-analysis/site/repro.html#table-5" class="nav-btn">report: Table 5, step by step →</a>
+
 ---
 name: wild-run-calls
 
@@ -417,6 +450,9 @@ main_estimate(score_tab5_cell(INP, **settings))        # 89.6: the authors' leav
 ```
 
 A dict comprehension sweeps one dial, as the explorer's first slider does. R: `sapply(c(0, 0.1, 0.2, 0.3), function(a) ...)`.
+
+
+<a href="https://fhoces.github.io/opa-prop40/bsz-analysis/site/repro.html#the-main-estimate" class="nav-btn">report: the main estimate →</a>
 
 ---
 class: inverse, center, middle

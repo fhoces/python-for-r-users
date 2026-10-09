@@ -15,6 +15,32 @@ output:
 .remark-code, .remark-inline-code { font-size: 80%; }
 .remark-slide-content { padding: 1em 2em; }
 .small { font-size: 80%; }
+.nav-btn {
+  position: absolute;
+  bottom: 12px;
+  left: 40px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn:hover { background: #c5cae9; }
+.nav-btn-br {
+  position: absolute;
+  bottom: 12px;
+  right: 70px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn-br:hover { background: #c5cae9; }
 ```
 
 # Course Map
@@ -253,6 +279,9 @@ if __name__ == "__main__":
 - The compute functions never touch files; that is what makes them testable one at a time.
 - The `__main__` guard: running the file runs it, importing it does not, so the parity test can import `run`.
 
+
+<a href="https://fhoces.github.io/opa-prop40/bsz-analysis/site/repro.html#reproducing-this-document" class="nav-btn">report: reproducing this document →</a>
+
 ---
 name: wild-check
 
@@ -285,6 +314,9 @@ if __name__ == "__main__":
 - `{c['name']:<58}` pads to a column; `fmt()` prints `maxdiff` with `:.3g`, `inf` when one side is missing.
 - The **exit code** is the result a Makefile or CI reads. Step 4 of the interview structure, "same answer two ways", is this function with `n = 1`.
 - The report prints counts and maximum differences only, never a row of the private files, so it can be committed.
+
+
+<a href="https://fhoces.github.io/opa-prop40/bsz-analysis/site/repro.html#mismatches-found-and-how-each-was-resolved" class="nav-btn">report: what matches the authors' files →</a>
 
 ---
 

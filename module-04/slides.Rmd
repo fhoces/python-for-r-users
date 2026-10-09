@@ -15,6 +15,32 @@ output:
 .remark-code, .remark-inline-code { font-size: 80%; }
 .remark-slide-content { padding: 1em 2em; }
 .small { font-size: 80%; }
+.nav-btn {
+  position: absolute;
+  bottom: 12px;
+  left: 40px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn:hover { background: #c5cae9; }
+.nav-btn-br {
+  position: absolute;
+  bottom: 12px;
+  right: 70px;
+  font-size: 11px;
+  background: #e8eaf6;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 100;
+  text-decoration: none;
+  color: #1a237e;
+}
+.nav-btn-br:hover { background: #c5cae9; }
 ```
 
 # Course Map
@@ -282,6 +308,9 @@ n_above_threshold_proj[below] = B[a] * (A[a] / A[below]) ** D24
 - `B.copy()` before writing into a slice: numpy modifies in place, R copies on modify (module 1, trap 8).
 - `B[a] * (A[a] / A[below]) ** D24` broadcasts a scalar over a vector, R's recycling.
 - The regression twin is `smf.ols("np.log(n_above) ~ np.log(threshold)")`: `np.log` inside a formula works like `log()` inside `lm()`. The two estimators agree only when the tail is a power law. The drill checks that on fares.
+
+
+<a href="https://fhoces.github.io/opa-prop40/bsz-analysis/site/repro.html#row-2-adding-the-billionaires-forbes-misses" class="nav-btn">report: the missing billionaires →</a>
 
 ---
 class: inverse, center, middle
