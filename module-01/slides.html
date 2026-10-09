@@ -302,7 +302,7 @@ name: wild-registry
 
 # In the Wild: A Dict of Functions
 
-From here on, each module ends with a few lines of real code from one reproduction, the BSZ step of [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40) (`bsz-analysis/py/`), the code module 7 drills. Economics out, idiom in. Here, `load_bundle.py`: one `load_&lt;table&gt;()` per raw input, and a **registry** that maps names to them:
+Each module now ends with real code from one reproduction: the BSZ step of [`fhoces/opa-prop40`](https://github.com/fhoces/opa-prop40) (BSZ: a paper on California billionaires; module 7 reads that code file by file). Ignore what it computes and look at the Python habits an R user would write differently. Here: three raw files go into a database, one `load_&lt;table&gt;()` per file, and a dict (the **registry**) maps each table name to its function:
 
 .small[
 ```python
