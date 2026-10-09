@@ -64,7 +64,6 @@ rides.dtypes         # column types
 
 # The dplyr → pandas Cheat Sheet
 
-.small[
 | What | dplyr | pandas |
 |---|---|---|
 | Filter | `filter(df, fare &gt; 10)` | `df[df["fare"] &gt; 10]` |
@@ -74,7 +73,6 @@ rides.dtypes         # column types
 | Summarise | `summarise(df, avg = mean(fare))` | `df["fare"].mean()` |
 | Group + summarise | `group_by(df, city) %&gt;% summarise(...)` | `df.groupby("city")["fare"].mean()` |
 | Distinct | `distinct(df, id)` | `df.drop_duplicates("id")` |
-]
 
 --
 
