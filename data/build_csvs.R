@@ -48,7 +48,10 @@ rides <- rides |>
   mutate(
     duration_min = round(distance_mi * 3 + rnorm(n_rides, 0, 1.5), 1),
     fare_usd     = round(2.50 + 1.50 * distance_mi * surge_mult + rnorm(n_rides, 0, 1), 2),
-    pickup_at    = as.character(pickup_at)
+    # format(), not as.character(): since R 4.3 as.character() drops the
+    # time of a POSIXct that falls exactly at midnight, which leaves pandas
+    # with mixed formats and pickup_at unparsed
+    pickup_at    = format(pickup_at, "%Y-%m-%d %H:%M:%S")
   )
 write_csv(rides, "data/rides.csv")
 
