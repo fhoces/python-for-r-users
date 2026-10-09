@@ -271,6 +271,65 @@ rates = np.minimum(0 + np.arange(n + 1) * rate_step, max_rate)
 - NaN is the missing value throughout (`NA = np.nan`); `np.nansum` and `np.nanmean` are the `na.rm = TRUE` family.
 
 ---
+name: wild-grid
+
+# In the Wild: The Explorer's Grid as a DataFrame
+
+Exercise Q7 rebuilds the repo [explorer](https://fhoces.github.io/opa-prop40/bsz-analysis/site/explorer/)'s grid with its own function (`score_tab5_cell()`, module 1) and the loop of `build_site_grid()` in `site_exports.py`:
+
+.small[
+```python
+DIALS = {"avoidance": [0, 0.05, 0.10, 0.15, 0.20, 0.30],
+         "mobility_share": [0, 0.25, 0.50, 0.75, 1],
+         "avoidance_small": [0.10, 0.20, 0.30, 0.50],
+         "sell_share": [0, 1 / 3, 2 / 3, 1],
+         "pareto": [False, True], "leavers": [False, True]}
+rows = []
+for values in itertools.product(*DIALS.values()):         # every combination
+    setting = dict(zip(DIALS, values))                    # {"avoidance": 0, ...}
+    rows.append({**setting, **score_tab5_cell(INP, **setting)})
+grid = pd.DataFrame(rows)                                 # 1,920 rows: 6 x 5 x 4 x 4 x 2 x 2
+```
+]
+
+--
+
+- `itertools.product` is R's `expand.grid()`, except that it varies the **last** dial fastest. R's `build_site_grid()` reverses the order to match.
+- A list of dicts into one `DataFrame` is R's `bind_rows()` over a list of rows.
+- The rebuilt grid matches the repo's published `site/data/grid.csv` cell for cell.
+
+---
+name: wild-grid-query
+
+# In the Wild: Querying the Grid (Exercise Q7)
+
+.small[
+```python
+grid = grid.assign(
+    income_tax_loss_pv = grid["annual_ca_inctax_loss"] * PV_5Y_3PCT,
+    main_estimate = lambda d: d["wealth_tax_revenue"] + d["extra_ca_inctax_sales"]
+                              + d["income_tax_loss_pv"])
+grid.groupby("avoidance")["main_estimate"].agg(["min", "median", "max"])
+grid.nsmallest(5, "main_estimate")
+# others_at_base: True where the other four dials sit at their base values
+grid[others_at_base].pivot(index="avoidance", columns="mobility_share", values="main_estimate")
+(grid["main_estimate"] < 90).mean()                      # 0.195
+```
+]
+
+--
+
+.small[
+| pandas | dplyr |
+|---|---|
+| `assign(..., main_estimate = lambda d: ...)`: the `lambda` sees a column made in the same call | `mutate()`, which always does |
+| `.agg(["min", "median", "max"])` | `summarise(min = min(x), median = median(x), max = max(x))` |
+| `nsmallest(5, "main_estimate")`: the four lowest tie, because `avoidance_small` only matters when `pareto` is True | `slice_min(main_estimate, n = 5)` |
+| `pivot(index=, columns=, values=)` | `pivot_wider(names_from =, values_from =)` |
+| `(x < 90).mean()`: the mean of True/False is a share | `mean(x < 90)` |
+]
+
+---
 class: inverse, center, middle
 
 # Interview Questions

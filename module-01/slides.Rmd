@@ -356,6 +356,69 @@ for k, v in {**pub, "top3": AG14, "top2": AH14}.items():
 ```
 
 ---
+name: wild-run
+
+# In the Wild: Run the Real Function
+
+Exercise Q7 copies one function whole and runs it: `score_tab5_cell()` from `compute_tab5.py`, the estimating function behind the repo's [explorer](https://fhoces.github.io/opa-prop40/bsz-analysis/site/explorer/). Here the economics stays in, because the numbers are the check. Condensed:
+
+.small[
+```python
+def score_tab5_cell(inp, avoidance=0.10, mobility_share=0.50, avoidance_small=0.20,
+                    sell_share=1 / 3, pareto=False, leavers=False, tax_rate=0.05, ...):
+    pw = inp["pct_wealth_increase"] if pareto else 0      # missing billionaires: on or off
+    taxable = ((1 - avoidance) * (inp["W0"] - (inp["W_pre"] if leavers else 0))
+               + (1 - avoidance_small) * inp["W0"] * pw)
+    revenue = tax_rate * taxable - phasein                # phasein: a small deduction near $1B
+    ...
+    return {"wealth_tax_revenue": float(revenue), "extra_ca_inctax_sales": float(extra),
+            "annual_ca_inctax_loss": float(loss), ...}   # seven outcomes
+```
+]
+
+--
+
+.small[
+| Python | R |
+|---|---|
+| `def f(inp, avoidance=0.10, ...)`: keyword arguments with defaults | `function(inp, avoidance = 0.10, ...)` |
+| `x if cond else 0`: the one-line if/else, here switching a term off | `if (cond) x else 0` |
+| `return {...}`: a dict of named results | a named list |
+| `inp["W0"]`: look up one input by name | `inp[["W0"]]` |
+]
+
+---
+name: wild-run-calls
+
+# In the Wild: Calling It (Exercise Q7)
+
+`main_estimate()` in the exercise adds the three parts, with the yearly income tax loss summed over 5 years at 3%.
+
+```python
+base = score_tab5_cell(INP)                   # every default: the authors' base scenario
+main_estimate(base)                           # 106.8 ($B): the explorer's main estimate
+```
+
+--
+
+```python
+main_estimate(score_tab5_cell(INP, avoidance=0.20))    # 94.2: name one, the rest keep defaults
+settings = {"pareto": False, "leavers": True}
+main_estimate(score_tab5_cell(INP, **settings))        # 89.6: the authors' leavers row
+```
+
+`**settings` unpacks a dict into keyword arguments. R: `do.call(score_tab5_cell, c(list(inp), settings))`.
+
+--
+
+```python
+{a: round(main_estimate(score_tab5_cell(INP, avoidance=a)), 1) for a in [0, 0.1, 0.2, 0.3]}
+# {0: 119.4, 0.1: 106.8, 0.2: 94.2, 0.3: 81.5}
+```
+
+A dict comprehension sweeps one dial, as the explorer's first slider does. R: `sapply(c(0, 0.1, 0.2, 0.3), function(a) ...)`.
+
+---
 class: inverse, center, middle
 
 # Interview Questions
