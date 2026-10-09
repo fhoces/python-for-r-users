@@ -229,6 +229,7 @@ def compare_keyed(name, ours, key, key_cols, num_cols, text_cols, tol):
 - The pandas twin: `merge(how="outer", indicator=True)` and `value_counts()` of `_merge` give the three counts; `duplicated(subset=key_cols).sum()` gives `dup`. Module 7 uses that form.
 
 ---
+name: wild-match
 
 # In the Wild: `match()` Two Ways
 

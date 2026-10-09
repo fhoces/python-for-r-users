@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Handout: the BSZ code in this course</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    max-width: 760px;
+    margin: 3em auto;
+    padding: 0 1.2em;
+    color: #222;
+    line-height: 1.55;
+  }
+  h1 { border-bottom: 1px solid #ddd; padding-bottom: 0.3em; }
+  h2 { margin-top: 2em; }
+  table { border-collapse: collapse; width: 100%; margin: 1.5em 0; }
+  th, td { padding: 0.55em 0.8em; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
+  th { background: #f6f8fa; }
+  td.num { width: 3em; color: #666; }
+  a { color: #0366d6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .small { font-size: 0.9em; color: #555; }
+  code { font-size: 0.92em; background: #f6f8fa; padding: 0.1em 0.3em; border-radius: 3px; }
+  .where { font-size: 0.9em; }
+  .where span { display: block; }
+</style>
+</head>
+<body>
+
+<h1>Handout: the BSZ code in this course</h1>
+
+<p>
+Every line of real Python in this course comes from one reproduction: the BSZ step
+of <a href="https://github.com/fhoces/opa-prop40">fhoces/opa-prop40</a>, folder
+<code>bsz-analysis/py/</code>. BSZ is a paper on the wealth and taxes of California
+billionaires. Its reproduction has two steps. Step 1 runs shared <code>.sql</code>
+files over the raw data (daily Forbes snapshots, SEC filings), from Python and from R,
+and checks that the two exports agree. Step 2 takes the paper's public workbook to every
+number the R pipeline exports, with a Python twin written to be compared against the R
+side function by function.
+</p>
+
+<p>
+This page lists where that code appears in the course, module by module and then file by
+file. In modules 1 to 5 the excerpts are condensed to a few lines, the economics is left
+out, and each slide shows one idiom next to its R twin. Module 7 works on the files
+themselves, with drills graded by <code>check.py</code> on a synthetic panel in the same
+shape as the real data (the real data are confidential).
+</p>
+
+<h2>Module by module</h2>
+
+<table>
+  <tr><th>#</th><th>Where in the course</th><th>BSZ files and functions</th><th>Idiom, with its R twin</th></tr>
+  <tr>
+    <td class="num">1</td>
+    <td class="where">
+      <span>Slides: <a href="module-01/slides.html#wild-registry">A Dict of Functions</a>, <a href="module-01/slides.html#wild-comprehensions">Three Comprehension Moves</a></span>
+      <span>Concepts: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-01/concepts.md#in-the-wild-real-code-from-one-reproduction">In the wild: real code from one reproduction</a></span>
+      <span>Drill: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-01/exercise.py#L104">exercise.py, Q6</a></span>
+    </td>
+    <td><code>load_bundle.py</code>: <code>LOADERS</code>, <code>FORM4_INT</code>, <code>main()</code><br><code>compute_shortrunseries.py</code>: <code>srs_summary_2025()</code></td>
+    <td>A dict of functions as a registry (a named list of functions); <code>argv or DEFAULT</code>; a set comprehension with two <code>for</code> clauses (<code>paste0</code> over <code>rep(each=)</code>); dict merge with <code>**</code> (<code>c()</code> then <code>unlist()</code>)</td>
+  </tr>
+  <tr>
+    <td class="num">2</td>
+    <td class="where">
+      <span>Slides: <a href="module-02/slides.html#wild-table">Filter, Stable Sort, and a Summary Row</a>, <a href="module-02/slides.html#wild-numpy">numpy for R's Vector Idioms</a></span>
+      <span>Concepts: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-02/concepts.md#in-the-wild-filter-stable-sort-summary-row-and-numpy">In the wild: filter, stable sort, summary row, and numpy</a></span>
+      <span>Drill: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-02/exercise.py#L117">exercise.py, Q6</a></span>
+    </td>
+    <td><code>figures.py</code>: <code>build_fig_a1()</code><br><code>tables.py</code>: <code>build_tab2()</code>, <code>_rsum()</code><br><code>compute_pareto.py</code>: <code>compute_pareto_missing()</code>, <code>compute_fig8_laffer()</code></td>
+    <td><code>.notna()</code>; <code>kind="stable"</code> (R's <code>order()</code> is stable, pandas' default is not); a one-row frame appended with <code>concat</code> (<code>bind_rows</code>); <code>np.append(x[1:], 0)</code> as <code>c(x[-1], 0)</code>; <code>nansum</code> as <code>na.rm = TRUE</code>; <code>which()</code> as <code>flatnonzero</code>; the <code>np.arange</code> float-step trap against <code>seq()</code>; summation order</td>
+  </tr>
+  <tr>
+    <td class="num">3</td>
+    <td class="where">
+      <span>Slides: <a href="module-03/slides.html#wild-join">A Join Without pandas</a>, <a href="module-03/slides.html#wild-match"><code>match()</code> Two Ways</a></span>
+      <span>Concepts: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-03/concepts.md#in-the-wild-a-join-without-pandas-and-match-two-ways">In the wild: a join without pandas, and match() two ways</a></span>
+      <span>Drill: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-03/exercise.py#L89">exercise.py, Q6</a></span>
+    </td>
+    <td><code>check_common.py</code>: <code>compare_keyed()</code><br><code>compute_shortrunseries.py</code>: <code>srs_panel_columns()</code><br><code>tables.py</code>: <code>build_tab2()</code>, <code>build_tab3()</code> (<code>pick()</code>)</td>
+    <td>A join on a composite key with dicts and sets: both anti-joins and duplicate keys counted, then the <code>merge(indicator=True)</code> twin; <code>match()</code> as <code>flatnonzero</code> and as <code>set_index().loc[]</code>, and how each fails; the "exactly one row" guard</td>
+  </tr>
+  <tr>
+    <td class="num">4</td>
+    <td class="where">
+      <span>Slides: <a href="module-04/slides.html#wild-pareto">A Parameter Calibrated, Not Regressed</a></span>
+      <span>Concepts: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-04/concepts.md#in-the-wild-a-parameter-calibrated-not-regressed">In the wild: a parameter calibrated, not regressed</a></span>
+      <span>Drill: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-04/exercise.py#L130">exercise.py, Q6</a></span>
+    </td>
+    <td><code>compute_pareto.py</code>: <code>compute_pareto_missing()</code></td>
+    <td>A power-law exponent as a ratio of means pinned at an anchor row, matching a spreadsheet cell by cell; <code>.copy()</code> before writing into a slice (R copies on modify); broadcasting as recycling; the regression twin <code>smf.ols("np.log(y) ~ np.log(x)")</code>, and when the two disagree</td>
+  </tr>
+  <tr>
+    <td class="num">5</td>
+    <td class="where">
+      <span>Slides: <a href="module-05/slides.html#wild-run">One Function Per Stage</a>, <a href="module-05/slides.html#wild-check">A Check That Fails Loudly</a></span>
+      <span>Concepts: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-05/concepts.md#in-the-wild-one-function-per-stage-and-a-check-that-fails-loudly">In the wild: one function per stage, and a check that fails loudly</a></span>
+      <span>Drill: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-05/exercise.py#L151">exercise.py, Q7</a></span>
+    </td>
+    <td><code>run_export.py</code>: <code>run()</code><br><code>check_common.py</code>: <code>write_report()</code></td>
+    <td>Inputs, shared step, computations, outputs as separate functions; <code>None</code> defaults resolved inside; the <code>__main__</code> guard; a check as a dict (<code>name</code>, <code>ok</code>, <code>n</code>, <code>maxdiff</code>, <code>note</code>); PASS/FAIL lines and an exit code (<code>quit(status = 1)</code>)</td>
+  </tr>
+  <tr>
+    <td class="num">7</td>
+    <td class="where">
+      <span>Part 1 slides: <a href="module-07/slides.html#load-main"><code>load_bundle.py</code>: Reading a Big File in Pieces</a>, <a href="module-07/slides.html#export-main">Exports That Never Change by Accident</a>, <a href="module-07/slides.html#r-main">The R Twin</a>, <a href="module-07/slides.html#check-main"><code>check_rtb_ca.py</code>: Align on Keys, Then Compare</a> (plus the <code>bundle_paths.py</code>, NULL-handling, parameter-binding and <code>run_sql.py</code> slides between them)</span>
+      <span>Concepts: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/concepts.md">module 7, part 1</a></span>
+      <span>Drills: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/exercise.py#L39">Q1</a> loader, <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/exercise.py#L95">Q2</a> SQL runner and export, <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/exercise.py#L144">Q3</a> answer-key comparison, <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/exercise.py#L202">Q4</a> R-vs-Python parity</span>
+    </td>
+    <td><code>bundle_paths.py</code>, <code>load_bundle.py</code>, <code>run_sql.py</code>, <code>check_rtb_ca.py</code>, <code>R/run_sql.R</code>, <code>sql/01_rtb_ca.sql</code> (a copy ships in the module)</td>
+    <td>Chunked <code>csv.reader</code> with empty-to-<code>None</code> (<code>read_csv_chunked</code>, <code>dbAppendTable</code>); <code>executemany</code> with <code>?</code> placeholders; indexes after the load; <code>executescript</code> vs <code>execute</code>; deterministic CSV exports (sort keys, <code>repr</code> floats); <code>merge(indicator=True)</code>; tolerance vs exact equality; exit codes</td>
+  </tr>
+  <tr>
+    <td class="num">7</td>
+    <td class="where">
+      <span>Part 2 slides: <a href="module-07/slides.html#twin-main">Function by Function, File by File</a>, <a href="module-07/slides.html#openpyxl-main">openpyxl: Reading a Sheet the Way readxl Does</a>, <a href="module-07/slides.html#idioms-main">pandas Twins of the R Idioms</a>, <a href="module-07/slides.html#parity-main">The Parity Test</a></span>
+      <span>Concepts: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/concepts.md#part-2-translating-an-r-pipeline-into-a-python-twin">Part 2: translating an R pipeline into a Python twin</a></span>
+      <span>Drills: <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/exercise.py#L258">Q5</a> positional sheet reader, <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/exercise.py#L330">Q6</a> a cell as <code>as.numeric()</code> sees it, <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/exercise.py#L380">Q7</a> a dplyr pipeline in pandas, <a href="https://github.com/fhoces/python-for-r-users/blob/main/module-07/exercise.py#L427">Q8</a> relative-tolerance parity</span>
+    </td>
+    <td><code>ingest_excel.py</code>, <code>excel_cells.py</code>, <code>workbook_db.py</code>, <code>compute_*.py</code>, <code>tables.py</code>, <code>figures.py</code>, <code>vintage.py</code>, <code>run_export.py</code>, their R twins in <code>R/</code>, <code>tests/testthat/helper-py-parity.R</code>, <code>sql/02_data_sec_agg.sql</code></td>
+    <td>One Python file per R file with the same function names; <code>openpyxl</code> with <code>data_only=True</code> and a frame indexed like the sheet; <code>to_num()</code> as <code>suppressWarnings(as.numeric())</code>; <code>isin</code>, <code>duplicated(subset=)</code>, <code>size()</code>, <code>sum()</code> as <code>%in%</code>, <code>duplicated()</code>, <code>n()</code>, <code>sum(na.rm = TRUE)</code>; parity at <code>1e-9 * max(1, |r|)</code></td>
+  </tr>
+</table>
+
+<p class="small">
+Modules 6 and 7 are the two deliberate breaks from the ride-sharing data. Module 6 reads a
+different package (<code>aiscen</code>, from another OPA project) and is not part of this map.
+</p>
+
+<h2>File by file</h2>
+
+<p>The same map the other way round, for a reader who starts from the repository. Each file links to its source in <code>opa-prop40</code>.</p>
+
+<table>
+  <tr><th>File in <code>bsz-analysis/</code></th><th>What the course takes from it</th><th>Modules</th></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/bundle_paths.py"><code>py/bundle_paths.py</code></a></td><td>one place that knows where every file lives, with a useful error when one is missing</td><td>7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/load_bundle.py"><code>py/load_bundle.py</code></a></td><td>the <code>LOADERS</code> registry and <code>main()</code>; the <code>FORM4_INT</code> set comprehension; the chunked loader with explicit NULLs, parameter binding and indexes after the load</td><td>1, 7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/run_sql.py"><code>py/run_sql.py</code></a></td><td><code>executescript</code> against <code>execute</code>; sorted, <code>repr</code>-formatted CSV exports; <code>argparse</code></td><td>7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/check_rtb_ca.py"><code>py/check_rtb_ca.py</code></a></td><td>align on keys, compare with a tolerance, write a report, exit with a code</td><td>7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/check_common.py"><code>py/check_common.py</code></a></td><td><code>compare_keyed()</code>, a join with dicts and sets; <code>write_report()</code>, PASS/FAIL lines and the exit code</td><td>3, 5</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/ingest_excel.py"><code>py/ingest_excel.py</code></a>, <a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/excel_cells.py"><code>py/excel_cells.py</code></a></td><td>a sheet read by position with <code>openpyxl</code>; a cell as R's <code>as.numeric()</code> sees it</td><td>7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/workbook_db.py"><code>py/workbook_db.py</code></a></td><td>two sheets into SQLite with <code>to_sql</code>, the shared <code>.sql</code> files run there</td><td>7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/compute_pareto.py"><code>py/compute_pareto.py</code></a></td><td>numpy for R's vector idioms (<code>np.append</code>, <code>nansum</code>, <code>flatnonzero</code>, <code>errstate</code>, the <code>seq()</code> grid); the power law calibrated at an anchor row</td><td>2, 4, 7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/compute_shortrunseries.py"><code>py/compute_shortrunseries.py</code></a></td><td>dict merge with <code>**</code> and <code>unlist()</code>-style keys; <code>match()</code> through <code>flatnonzero</code></td><td>1, 3, 7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/tables.py"><code>py/tables.py</code></a></td><td>a summary row appended with <code>concat</code>; <code>_rsum()</code> and summation order; <code>match()</code> through <code>set_index().loc[]</code>; the <code>pick()</code> guard</td><td>2, 3, 7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/figures.py"><code>py/figures.py</code></a></td><td><code>.notna()</code> filter and a stable sort</td><td>2, 7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/vintage.py"><code>py/vintage.py</code></a></td><td>literals that vary by workbook vintage, switched by an environment variable</td><td>7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/py/run_export.py"><code>py/run_export.py</code></a></td><td><code>run()</code>: one function per stage, the <code>__main__</code> guard; the role of <code>_targets.R</code></td><td>5, 7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/R/run_sql.R"><code>R/run_sql.R</code></a></td><td>the same <code>.sql</code> file from R, for the parity check</td><td>7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/tests/testthat/helper-py-parity.R"><code>tests/testthat/helper-py-parity.R</code></a></td><td><code>compare_parity_frames()</code>: relative tolerance on numbers, strict on everything else</td><td>7</td></tr>
+  <tr><td><a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/sql/01_rtb_ca.sql"><code>sql/01_rtb_ca.sql</code></a>, <a href="https://github.com/fhoces/opa-prop40/blob/main/bsz-analysis/sql/02_data_sec_agg.sql"><code>sql/02_data_sec_agg.sql</code></a></td><td>the queries the Python loads, runs and checks; treated as a black box here and taught in <a href="https://fhoces.github.io/sql-industry-prep/module-06/slides.html">sql-industry-prep, module 6</a></td><td>7</td></tr>
+</table>
+
+<h2>Reading order</h2>
+
+<p>
+The short path through the BSZ code is the "In the wild" slide of each module in order,
+1 to 5, then module 7. Each of the five slides is one idiom and takes a few minutes; module
+7 is the full set of files with the drills. The SQL course's module 6 covers what the two
+queries compute, and pairs with module 7 here.
+</p>
+
+<p class="small">
+Source: <a href="https://github.com/fhoces/python-for-r-users">github.com/fhoces/python-for-r-users</a>
+&middot; <a href="index.html">course index</a>
+</p>
+
+</body>
+</html>

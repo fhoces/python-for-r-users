@@ -256,6 +256,7 @@ pd.concat([panel, pd.DataFrame([avg_row])], ignore_index=True)
 - `pd.DataFrame([avg_row])` is a one-row frame from a dict; `concat` with `ignore_index=True` is `bind_rows(panel, tibble(...))`. The `year` column holds `"2019"` and a label, so the panel stores it as text from the start.
 
 ---
+name: wild-numpy
 
 # In the Wild: numpy for R's Vector Idioms
 

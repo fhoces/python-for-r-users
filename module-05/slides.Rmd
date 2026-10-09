@@ -254,6 +254,7 @@ if __name__ == "__main__":
 - The `__main__` guard: running the file runs it, importing it does not, so the parity test can import `run`.
 
 ---
+name: wild-check
 
 # In the Wild: A Check That Fails Loudly
 

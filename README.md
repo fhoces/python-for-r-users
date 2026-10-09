@@ -60,6 +60,9 @@ R twin (a dict of functions, a stable sort and a summary row, a join
 written with dicts and sets, a power law calibrated without a regression,
 one function per pipeline stage and a check with an exit code).
 
+The handout [handout-bsz-code.html](https://fhoces.github.io/python-for-r-users/handout-bsz-code.html)
+maps every use of that code, module by module and file by file.
+
 ## Module 7: different data, and two new artifact types
 
 Module 7 works on the Python around one SQL step of a real replication
